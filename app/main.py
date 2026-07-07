@@ -373,6 +373,93 @@ def _attach_trade_plan(payload: dict, metal: str) -> dict:
     return payload
 
 
+def _attach_structure_signals(payload: dict, metal: str) -> dict:
+    trade_plan = payload.get("trade_plan") or _build_trade_plan(payload, metal)
+    current = float(payload.get("current_price") or trade_plan.get("entry_mid") or 0.0)
+    support = float(trade_plan.get("support") or current)
+    resistance = float(trade_plan.get("resistance") or current)
+    atr_proxy = max(float(trade_plan.get("atr_proxy") or 0.01), 0.01)
+    technical = float(payload.get("technical_score") or 50.0)
+    macro_score = float(payload.get("macro_score") or 50.0)
+    news_score = float(payload.get("news_score") or 50.0)
+    event_risk = float(payload.get("event_risk_score") or 50.0)
+
+    midpoint = (support + resistance) / 2.0 if resistance or support else current
+    band = max(resistance - support, atr_proxy)
+    range_position = 0.5 if band == 0 else max(0.0, min(1.0, (current - support) / band))
+    distance_to_resistance_pct = ((resistance - current) / resistance * 100.0) if resistance else 0.0
+    distance_to_support_pct = ((current - support) / support * 100.0) if support else 0.0
+
+    history_raw = payload.get("price_history") or []
+    history = [float(v) for v in history_raw if isinstance(v, (int, float))]
+    resistance_touches = 0
+    if history:
+        touch_band = max(atr_proxy * 0.35, 0.03 if metal == "silver" else 0.75)
+        resistance_touches = sum(1 for value in history[-20:] if abs(value - resistance) <= touch_band)
+
+    if current >= resistance - atr_proxy * 0.25:
+        resistance_state = "at_ceiling"
+    elif distance_to_resistance_pct <= 0.45:
+        resistance_state = "pressing"
+    elif range_position < 0.35:
+        resistance_state = "far_below"
+    else:
+        resistance_state = "inside_range"
+
+    if resistance_touches >= 4:
+        resistance_strength = "heavy"
+    elif resistance_touches >= 2:
+        resistance_strength = "moderate"
+    else:
+        resistance_strength = "light"
+
+    driver_spread = max(technical, macro_score, news_score) - min(technical, macro_score, news_score)
+    gamma_raw = 50.0
+    gamma_raw += (12.0 if abs(current - midpoint) <= atr_proxy * 0.8 else -10.0)
+    gamma_raw += (8.0 if driver_spread <= 10 else -8.0)
+    gamma_raw += (7.0 if event_risk <= 45 else -9.0)
+    gamma_raw += (6.0 if resistance_state == "inside_range" else -6.0 if resistance_state in {"pressing", "at_ceiling"} else 0.0)
+    gamma_score = max(0.0, min(100.0, round(gamma_raw, 1)))
+
+    if gamma_score >= 58:
+        gamma_exposure = "positive"
+        gamma_regime = "pinning"
+        gamma_note = "Dealer hedging likely dampens moves and favors mean reversion inside the current range."
+    elif gamma_score <= 42:
+        gamma_exposure = "negative"
+        gamma_regime = "expansion"
+        gamma_note = "Dealer hedging may amplify directional breaks, especially if price leans on resistance."
+    else:
+        gamma_exposure = "neutral"
+        gamma_regime = "balanced"
+        gamma_note = "Gamma backdrop looks balanced, so macro/news drivers remain the main directional force."
+
+    payload["gamma_signal"] = {
+        "exposure": gamma_exposure,
+        "regime": gamma_regime,
+        "score": gamma_score,
+        "range_position": round(range_position * 100.0, 1),
+        "note": gamma_note,
+    }
+    payload["resistance_signal"] = {
+        "state": resistance_state,
+        "strength": resistance_strength,
+        "resistance": round(resistance, 2),
+        "support": round(support, 2),
+        "distance_to_resistance_pct": round(distance_to_resistance_pct, 2),
+        "distance_to_support_pct": round(distance_to_support_pct, 2),
+        "touches": resistance_touches,
+    }
+
+    market_context = dict(payload.get("market_context") or {})
+    market_context["gamma_exposure"] = gamma_exposure
+    market_context["gamma_regime"] = gamma_regime
+    market_context["resistance_state"] = resistance_state
+    market_context["resistance_strength"] = resistance_strength
+    payload["market_context"] = market_context
+    return payload
+
+
 @app.get("/", response_class=HTMLResponse)
 def landing_page():
     return INDEX_HTML.read_text(encoding="utf-8")
@@ -396,7 +483,7 @@ def health_check():
 @app.get("/backtest")
 def get_backtest():
     """Run a lightweight historical backtest on sample price data."""
-    sample_prices = [100, 102, 101, 104, 103, 106, 108, 107, 110, 112, 109, 113]
+    sample_prices = [100.0, 102.0, 101.0, 104.0, 103.0, 106.0, 108.0, 107.0, 110.0, 112.0, 109.0, 113.0]
     return run_backtest(sample_prices, weights={"technical": 0.35, "macro": 0.30, "news": 0.35})
 
 
@@ -430,6 +517,7 @@ def get_signal(metal: str = "gold"):
         if should_alert(demo_signal, metal_settings["thresholds"]):
             demo_signal["alert"] = build_alert_message(demo_signal, metal_settings["thresholds"])
         demo_signal = _attach_trade_plan(demo_signal, target_metal)
+        demo_signal = _attach_structure_signals(demo_signal, target_metal)
         return _attach_calendar(demo_signal, target_metal)
 
     try:
@@ -448,6 +536,7 @@ def get_signal(metal: str = "gold"):
         if should_alert(fallback, metal_settings["thresholds"]):
             fallback["alert"] = build_alert_message(fallback, metal_settings["thresholds"])
         fallback = _attach_trade_plan(fallback, target_metal)
+        fallback = _attach_structure_signals(fallback, target_metal)
         return _attach_calendar(fallback, target_metal)
 
     composite = scoring.compute_composite(
@@ -486,6 +575,7 @@ def get_signal(metal: str = "gold"):
         signal_payload["alert"] = build_alert_message(signal_payload, metal_settings["thresholds"])
     signal_payload["suggestions"] = build_suggestions(signal_payload)
     signal_payload = _attach_trade_plan(signal_payload, target_metal)
+    signal_payload = _attach_structure_signals(signal_payload, target_metal)
     return _attach_calendar(signal_payload, target_metal)
 
 
