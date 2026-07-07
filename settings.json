@@ -1,0 +1,24 @@
+{
+  "gold": {
+    "weights": {
+      "technical": 0.65,
+      "macro": 0.1,
+      "news": 0.25
+    },
+    "thresholds": {
+      "bullish": 71,
+      "bearish": 35
+    }
+  },
+  "silver": {
+    "weights": {
+      "technical": 0.65,
+      "macro": 0.25,
+      "news": 0.25
+    },
+    "thresholds": {
+      "bullish": 59,
+      "bearish": 35
+    }
+  }
+}
