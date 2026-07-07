@@ -1078,6 +1078,10 @@
         const distanceToCeiling = resistance ? ((resistance - currentPrice) / resistance) * 100 : 0;
         const driverSpread = Math.max(technical, macro, newsScore) - Math.min(technical, macro, newsScore);
         const macroPositive = [data.market_context?.yield_falling, data.market_context?.dollar_weaker, data.market_context?.inflation_rising, data.market_context?.risk_off].filter(Boolean).length;
+        const gammaRating = data.gamma_signal?.rating || data.gamma_exposure_rating || data.market_context?.gamma_rating || 'C';
+        const gammaScore = Number(data.gamma_signal?.score ?? 50);
+        const gammaExposure = (data.gamma_signal?.exposure || data.market_context?.gamma_exposure || 'neutral').toUpperCase();
+        const gammaRegime = data.gamma_signal?.regime || data.market_context?.gamma_regime || 'balanced';
 
         const cards = [
           {
@@ -1103,6 +1107,12 @@
             value: driverSpread <= 8 ? 'Tight' : driverSpread <= 18 ? 'Mixed' : 'Divergent',
             note: `Spread ${formatNumber(driverSpread, 1)} pts · Macro positives ${macroPositive}/4`,
             help: 'Driver spread is max minus min across technical, macro, and news scores. Lower spread means stronger agreement across models.',
+          },
+          {
+            title: 'Gamma exposure rating',
+            value: gammaRating,
+            note: `${gammaExposure} · ${gammaRegime} · Score ${formatNumber(gammaScore, 1)}`,
+            help: 'Letter rating derived from gamma score bands to summarize whether dealer hedging likely dampens or amplifies moves.',
           },
         ];
 
@@ -1282,6 +1292,18 @@
             tone: data.market_context?.risk_off ? 'positive' : 'neutral',
             detail: 'Safe-haven pressure',
           },
+          {
+            title: 'Gamma',
+            value: (data.gamma_signal?.exposure || 'neutral').toUpperCase(),
+            tone: data.gamma_signal?.exposure === 'negative' ? 'negative' : data.gamma_signal?.exposure === 'positive' ? 'positive' : 'neutral',
+            detail: `Rating ${(data.gamma_signal?.rating || data.gamma_exposure_rating || data.market_context?.gamma_rating || 'C')} · Regime ${data.gamma_signal?.regime || 'balanced'} · Score ${formatNumber(data.gamma_signal?.score, 1)}`,
+          },
+          {
+            title: 'Resistance',
+            value: (data.resistance_signal?.state || 'inside_range').replace('_', ' '),
+            tone: data.resistance_signal?.state === 'far_below' ? 'positive' : data.resistance_signal?.state === 'at_ceiling' ? 'negative' : 'neutral',
+            detail: `${formatNumber(data.resistance_signal?.distance_to_resistance_pct, 2)}% to ${formatNumber(data.resistance_signal?.resistance, currentMetal === 'silver' ? 2 : 1)}`,
+          },
         ];
 
         document.getElementById('market-pulse-output').innerHTML = pulseItems.map((item) => `
@@ -1316,6 +1338,8 @@
               <li>Yield trend: ${data.market_context?.yield_falling ? 'falling' : 'stable'}</li>
               <li>Dollar trend: ${data.market_context?.dollar_weaker ? 'weaker' : 'steady'}</li>
               <li>Inflation backdrop: ${data.market_context?.inflation_rising ? 'rising' : 'stable'}</li>
+              <li>Dealer gamma: ${escapeHtml((data.gamma_signal?.exposure || 'neutral').toUpperCase())} (${escapeHtml(data.gamma_signal?.regime || 'balanced')})</li>
+              <li>Resistance: ${escapeHtml((data.resistance_signal?.state || 'inside_range').replace('_', ' '))} | ${formatNumber(data.resistance_signal?.distance_to_resistance_pct, 2)}% to ceiling</li>
             </ul>
           </div>
           <div style="margin-top: 0.8rem;">
