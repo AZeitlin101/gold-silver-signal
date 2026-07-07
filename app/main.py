@@ -434,13 +434,28 @@ def _attach_structure_signals(payload: dict, metal: str) -> dict:
         gamma_regime = "balanced"
         gamma_note = "Gamma backdrop looks balanced, so macro/news drivers remain the main directional force."
 
+    if gamma_score >= 80:
+        gamma_rating = "A+"
+    elif gamma_score >= 68:
+        gamma_rating = "A"
+    elif gamma_score >= 58:
+        gamma_rating = "B"
+    elif gamma_score >= 46:
+        gamma_rating = "C"
+    elif gamma_score >= 34:
+        gamma_rating = "D"
+    else:
+        gamma_rating = "F"
+
     payload["gamma_signal"] = {
         "exposure": gamma_exposure,
         "regime": gamma_regime,
+        "rating": gamma_rating,
         "score": gamma_score,
         "range_position": round(range_position * 100.0, 1),
         "note": gamma_note,
     }
+    payload["gamma_exposure_rating"] = gamma_rating
     payload["resistance_signal"] = {
         "state": resistance_state,
         "strength": resistance_strength,
@@ -454,6 +469,7 @@ def _attach_structure_signals(payload: dict, metal: str) -> dict:
     market_context = dict(payload.get("market_context") or {})
     market_context["gamma_exposure"] = gamma_exposure
     market_context["gamma_regime"] = gamma_regime
+    market_context["gamma_rating"] = gamma_rating
     market_context["resistance_state"] = resistance_state
     market_context["resistance_strength"] = resistance_strength
     payload["market_context"] = market_context
