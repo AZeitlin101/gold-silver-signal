@@ -940,6 +940,87 @@
         return `The signal is balanced and should be watched closely until price and context align more clearly.`;
       }
 
+      function buildClientTradePlan(data, currentPrice, history) {
+        const values = (history || []).filter((v) => !Number.isNaN(Number(v))).map(Number);
+        const series = values.length ? values : [Number(currentPrice || 0)];
+        const now = Number(currentPrice || series[series.length - 1] || 0);
+        const direction = (data?.direction || 'neutral').toLowerCase();
+        const support = percentile(series, 0.25);
+        const resistance = percentile(series, 0.75);
+        const deltas = [];
+        for (let i = 1; i < series.length; i += 1) {
+          deltas.push(Math.abs(series[i] - series[i - 1]));
+        }
+        const atrProxy = deltas.length ? mean(deltas) : Math.max(now * 0.004, currentMetal === 'silver' ? 0.05 : 1.5);
+        const minBuffer = currentMetal === 'silver' ? 0.05 : 1.5;
+        const stopBuffer = Math.max(atrProxy * 0.8, minBuffer);
+
+        let entryMin;
+        let entryMax;
+        let entryMid;
+        let stopPrice;
+        let riskPerUnit;
+        let tp1;
+        let tp2;
+        let tp3;
+
+        if (direction === 'bearish') {
+          entryMin = Math.min(now, resistance || now);
+          entryMax = Math.max(now, resistance || now);
+          entryMid = (entryMin + entryMax) / 2;
+          stopPrice = entryMax + stopBuffer;
+          riskPerUnit = Math.max(stopPrice - entryMid, minBuffer);
+          tp1 = entryMid - riskPerUnit * 1.2;
+          tp2 = entryMid - riskPerUnit * 2.0;
+          tp3 = entryMid - riskPerUnit * 3.0;
+        } else {
+          entryMin = Math.min(now, support || now);
+          entryMax = Math.max(now, support || now);
+          entryMid = (entryMin + entryMax) / 2;
+          stopPrice = Math.max(0, entryMin - stopBuffer);
+          riskPerUnit = Math.max(entryMid - stopPrice, minBuffer);
+          tp1 = entryMid + riskPerUnit * 1.2;
+          tp2 = entryMid + riskPerUnit * 2.0;
+          tp3 = entryMid + riskPerUnit * 3.0;
+        }
+
+        const rr = (target) => {
+          const reward = Math.abs(target - entryMid);
+          return riskPerUnit > 0 ? reward / riskPerUnit : 0;
+        };
+
+        return {
+          direction,
+          entry_min: entryMin,
+          entry_max: entryMax,
+          entry_mid: entryMid,
+          stop_price: stopPrice,
+          tp1,
+          tp2,
+          tp3,
+          risk_per_unit: riskPerUnit,
+          rr_tp1: rr(tp1),
+          rr_tp2: rr(tp2),
+          rr_tp3: rr(tp3),
+          atr_proxy: atrProxy,
+          support,
+          resistance,
+        };
+      }
+
+      function buildClientSizing(tradePlan, accountSize = 10000, riskPct = 1.0) {
+        const riskCapital = Math.max(0, Number(accountSize || 0)) * Math.max(0, Number(riskPct || 0)) / 100;
+        const riskPerUnit = Math.max(0.000001, Number(tradePlan?.risk_per_unit || 0));
+        const units = riskCapital / riskPerUnit;
+        return {
+          account_size: Number(accountSize || 0),
+          risk_pct: Number(riskPct || 0),
+          risk_capital: riskCapital,
+          risk_per_unit: tradePlan?.risk_per_unit || 0,
+          units,
+        };
+      }
+
       function calculatePositionSize() {
         if (!latestTradePlan || !latestTradePlan.risk_per_unit) {
           document.getElementById('position-sizing-output').textContent = 'No trade plan available yet.';
@@ -1160,7 +1241,12 @@
         animateScore(score, direction, conviction, `${getMetalDisplayName(currentMetal)} · ${data.source || 'Demo'}`);
         document.getElementById('summary-blurb').textContent = buildSummaryBlurb(data);
         renderEconomicCalendar(data.economic_calendar);
-        renderTradePlan(data.trade_plan, data.position_sizing);
+        const fallbackPlan = buildClientTradePlan(data, currentPrice, priceHistory);
+        const tradePlan = (data.trade_plan && typeof data.trade_plan === 'object') ? data.trade_plan : fallbackPlan;
+        const sizing = (data.position_sizing && typeof data.position_sizing === 'object')
+          ? data.position_sizing
+          : buildClientSizing(tradePlan, Number(document.getElementById('account-size')?.value || 10000), Number(document.getElementById('risk-pct')?.value || 1));
+        renderTradePlan(tradePlan, sizing);
 
         alertBox.innerHTML = data.alert ? `<div class="alert-box">${escapeHtml(data.alert)}</div>` : '';
         suggestionsBox.innerHTML = (data.suggestions || []).map((item) => `
