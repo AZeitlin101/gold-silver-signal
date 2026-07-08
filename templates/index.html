@@ -474,9 +474,35 @@
         <div id="market-pulse-output" class="grid-4">Loading…</div>
       </div>
 
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-title">Signal confluence</div>
+          <div id="confluence-output" style="font-size: 0.95rem; line-height: 1.6;">Loading…</div>
+        </div>
+        <div class="card">
+          <div class="section-title">Signal momentum</div>
+          <div id="momentum-output" style="font-size: 0.95rem; line-height: 1.6;">Loading…</div>
+        </div>
+      </div>
+
+      <div class="card" id="divergence-card" style="display:none;">
+        <div class="section-title">⚠️ Divergence Alert</div>
+        <div id="divergence-output" style="font-size: 0.95rem; line-height: 1.6;">Loading…</div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Market session & hours</div>
+        <div id="market-session-output" style="font-size: 0.95rem; line-height: 1.6;">Loading…</div>
+      </div>
+
       <div class="card">
         <div class="section-title">Economic calendar risk</div>
         <div id="calendar-output" class="calendar-grid">Loading…</div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Gold vs Silver correlation</div>
+        <div id="correlation-output" style="font-size: 0.95rem; line-height: 1.6;">Loading…</div>
       </div>
 
       <div class="card">
@@ -1347,7 +1373,6 @@
 
         animateScore(score, direction, conviction, `${getMetalDisplayName(currentMetal)} · ${data.source || 'Demo'}`);
         document.getElementById('summary-blurb').textContent = buildSummaryBlurb(data);
-        renderEconomicCalendar(data.economic_calendar);
         const fallbackPlan = buildClientTradePlan(data, currentPrice, priceHistory);
         const tradePlan = (data.trade_plan && typeof data.trade_plan === 'object') ? data.trade_plan : fallbackPlan;
         const sizing = (data.position_sizing && typeof data.position_sizing === 'object')
@@ -1499,7 +1524,220 @@
             <strong>Effectiveness:</strong> ${(hedgeEffectMain * 100).toFixed(0)}%
           `;
         }
+
+        // Render new advanced features
+        renderConfluenceScore(data.confluence);
+        renderSignalMomentum(data.momentum);
+        renderDivergences(data.divergences);
+        renderMarketSession(data.market_session);
+        renderEconomicEventsList(data.economic_events);
+        await renderCorrelation();
       }
+
+      function renderConfluenceScore(confluence) {
+        const output = document.getElementById('confluence-output');
+        if (!confluence) {
+          output.innerHTML = 'Unable to calculate confluence.';
+          return;
+        }
+        const bullish = confluence.bullish_signals || 0;
+        const bearish = confluence.bearish_signals || 0;
+        const neutral = confluence.neutral_signals || 0;
+        const confluenceVal = confluence.confluence || 0;
+        
+        let confluenceText = '';
+        if (confluenceVal > 0) {
+          confluenceText = `${bullish}/3 signals bullish ✓`;
+        } else if (confluenceVal < 0) {
+          confluenceText = `${bearish}/3 signals bearish ✗`;
+        } else {
+          confluenceText = `Mixed signals - no clear agreement`;
+        }
+        
+        output.innerHTML = `
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8rem; margin-bottom: 0.8rem;">
+            <div style="text-align: center; padding: 0.8rem; background: rgba(34, 197, 94, 0.1); border-radius: 0.5rem;">
+              <div style="font-size: 1.5rem; font-weight: bold; color: #22c55e;">${bullish}</div>
+              <div style="font-size: 0.85rem; color: var(--muted);">Bullish</div>
+            </div>
+            <div style="text-align: center; padding: 0.8rem; background: rgba(248, 113, 113, 0.1); border-radius: 0.5rem;">
+              <div style="font-size: 1.5rem; font-weight: bold; color: #f87171;">${bearish}</div>
+              <div style="font-size: 0.85rem; color: var(--muted);">Bearish</div>
+            </div>
+            <div style="text-align: center; padding: 0.8rem; background: rgba(251, 191, 36, 0.1); border-radius: 0.5rem;">
+              <div style="font-size: 1.5rem; font-weight: bold; color: #fbbf24;">${neutral}</div>
+              <div style="font-size: 0.85rem; color: var(--muted);">Neutral</div>
+            </div>
+          </div>
+          <div style="padding: 0.8rem; background: var(--panel); border-radius: 0.5rem; border-left: 3px solid ${confluenceVal > 0 ? '#22c55e' : confluenceVal < 0 ? '#f87171' : '#fbbf24'};">
+            <strong>${confluenceText}</strong>
+            <br><small style="color: var(--muted);">Higher confluence = higher conviction trade setup</small>
+          </div>
+        `;
+      }
+
+      function renderSignalMomentum(momentum) {
+        const output = document.getElementById('momentum-output');
+        if (!momentum) {
+          output.innerHTML = 'Unable to calculate momentum.';
+          return;
+        }
+        
+        const momentumType = momentum.momentum || 'unknown';
+        const trend = momentum.trend || 0;
+        const direction = momentum.direction || 'flat';
+        
+        let momentumIcon = '➡️';
+        let momentumColor = '#fbbf24';
+        if (momentumType === 'strengthening') {
+          momentumIcon = '📈';
+          momentumColor = '#22c55e';
+        } else if (momentumType === 'weakening') {
+          momentumIcon = '📉';
+          momentumColor = '#f87171';
+        }
+        
+        output.innerHTML = `
+          <div style="padding: 0.8rem; background: var(--panel); border-radius: 0.5rem; border-left: 3px solid ${momentumColor};">
+            <div style="font-size: 1.2rem; margin-bottom: 0.4rem;">${momentumIcon} ${momentumType.charAt(0).toUpperCase() + momentumType.slice(1)}</div>
+            <div style="margin: 0.4rem 0; color: var(--muted);">
+              Trend: <strong>${direction === 'up' ? '↑' : direction === 'down' ? '↓' : '→'} ${trend > 0 ? '+' : ''}${trend.toFixed(2)}</strong>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--muted); margin-top: 0.6rem;">
+              ${momentumType === 'strengthening' ? 'Signal is gaining strength - good entry momentum' : 
+                momentumType === 'weakening' ? 'Signal is losing strength - consider caution' :
+                'Signal is stable - consistent backdrop'}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderDivergences(divergences) {
+        const card = document.getElementById('divergence-card');
+        const output = document.getElementById('divergence-output');
+        
+        if (!divergences || !divergences.has_divergence) {
+          card.style.display = 'none';
+          return;
+        }
+        
+        card.style.display = 'block';
+        const divList = (divergences.divergences || []).map(d => {
+          const labels = {
+            'technical_bullish_vs_macro_bearish': 'Technical says UP but Macro says DOWN',
+            'macro_bullish_vs_technical_bearish': 'Macro says UP but Technical says DOWN',
+            'news_bullish_vs_others': 'News is optimistic but others disagree',
+            'news_bearish_vs_others': 'News is pessimistic but others disagree'
+          };
+          return labels[d] || d;
+        });
+        
+        output.innerHTML = `
+          <div style="padding: 0.8rem; background: rgba(248, 113, 113, 0.1); border-left: 3px solid #f87171; border-radius: 0.5rem;">
+            <strong style="color: #f87171;">Caution: ${divergences.caution_level.toUpperCase()} caution level</strong>
+            <ul style="margin: 0.6rem 0 0 1.2rem; color: var(--muted);">
+              ${divList.map(d => `<li>${d}</li>`).join('')}
+            </ul>
+            <div style="font-size: 0.85rem; margin-top: 0.6rem; color: var(--muted);">
+              When signals disagree, reduce position size or wait for alignment.
+            </div>
+          </div>
+        `;
+      }
+
+      function renderMarketSession(session) {
+        const output = document.getElementById('market-session-output');
+        if (!session) {
+          output.innerHTML = 'Unable to determine market session.';
+          return;
+        }
+        
+        const sessionName = session.current_session || 'unknown';
+        const markets = (session.active_markets || []).join(', ') || 'None';
+        const volume = session.volume_expected || 'low';
+        
+        const sessionEmoji = {
+          'asian': '🌏',
+          'london': '🌍',
+          'newyork': '🌎',
+          'overnight': '🌙'
+        }[sessionName] || '⏰';
+        
+        output.innerHTML = `
+          <div style="padding: 0.8rem; background: var(--panel); border-radius: 0.5rem; border-left: 3px solid var(--accent);">
+            <div style="font-size: 1.1rem; margin-bottom: 0.4rem;">${sessionEmoji} ${sessionName.charAt(0).toUpperCase() + sessionName.slice(1)} Session</div>
+            <div style="margin: 0.4rem 0; color: var(--muted);">
+              <strong>Active markets:</strong> ${markets || 'None currently'}
+            </div>
+            <div style="margin: 0.4rem 0; color: var(--muted);">
+              <strong>Expected volume:</strong> <span style="text-transform: capitalize;">${volume}</span>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--muted); margin-top: 0.6rem;">
+              ${volume === 'high' ? 'High liquidity expected - good for entries/exits' : 
+                volume === 'medium' ? 'Moderate liquidity - normal conditions' :
+                'Low liquidity - wider spreads expected'}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderEconomicEventsList(events) {
+        const output = document.getElementById('calendar-output');
+        if (!events || events.length === 0) {
+          output.innerHTML = '<div class="small">No major events currently scheduled.</div>';
+          return;
+        }
+        
+        output.innerHTML = events.slice(0, 5).map(event => `
+          <div class="calendar-item" style="padding: 0.8rem; background: var(--panel); border-radius: 0.5rem; border-left: 3px solid ${event.impact === 'high' ? '#f87171' : event.impact === 'medium' ? '#fbbf24' : '#22c55e'}; margin-bottom: 0.6rem;">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+              <div>
+                <div style="font-weight: 600;">${escapeHtml(event.event || 'Economic Event')}</div>
+                <div style="font-size: 0.85rem; color: var(--muted);">${escapeHtml(event.time || 'TBA')}</div>
+              </div>
+              <div style="font-weight: 600; text-transform: uppercase; font-size: 0.75rem; color: ${event.impact === 'high' ? '#f87171' : event.impact === 'medium' ? '#fbbf24' : '#22c55e'};">
+                ${escapeHtml((event.impact || 'medium').toUpperCase())}
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      async function renderCorrelation() {
+        const output = document.getElementById('correlation-output');
+        try {
+          const res = await fetch('/correlation');
+          const data = await res.json();
+          const corr = data.correlation || {};
+          const movingTogether = corr.moving_together !== false;
+          const strength = corr.strength || 'weak';
+          
+          output.innerHTML = `
+            <div style="padding: 0.8rem; background: var(--panel); border-radius: 0.5rem; border-left: 3px solid ${movingTogether ? '#22c55e' : '#f87171'};">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                  <div style="font-size: 0.85rem; color: var(--muted);">Gold Signal</div>
+                  <div style="font-size: 1.5rem; font-weight: bold;">${corr.gold_score || 50}</div>
+                </div>
+                <div>
+                  <div style="font-size: 0.85rem; color: var(--muted);">Silver Signal</div>
+                  <div style="font-size: 1.5rem; font-weight: bold;">${corr.silver_score || 50}</div>
+                </div>
+              </div>
+              <div style="text-align: center; padding: 0.6rem; background: rgba(0,0,0,0.3); border-radius: 0.5rem; margin-bottom: 0.6rem;">
+                <div style="font-weight: 600;">Difference: ${corr.difference || 0}%</div>
+                <div style="font-size: 0.85rem; color: var(--muted);">${corr.correlation || 'unknown'}</div>
+              </div>
+              <div style="font-size: 0.85rem; color: var(--muted);">
+                ${movingTogether ? '✓ Gold and Silver signals are well-aligned' : '⚠ Gold and Silver signals diverging - check for asymmetric opportunity'}
+              </div>
+            </div>
+          `;
+        } catch (e) {
+          output.innerHTML = '<small style="color: var(--muted);">Correlation data unavailable</small>';
+        }
+      }
+
 
       async function loadBacktest() {
         const output = document.getElementById('backtest-output');

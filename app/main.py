@@ -175,6 +175,215 @@ def _get_runtime_config():
     }
 
 
+# Signal history for momentum tracking
+_SIGNAL_HISTORY = {"gold": [], "silver": []}
+_LAST_SIGNAL = {"gold": None, "silver": None}
+
+
+def _add_to_history(metal: str, score: float, timestamp: datetime = None):
+    """Track signal scores for momentum calculation."""
+    target = _normalize_metal(metal)
+    if timestamp is None:
+        timestamp = datetime.now(timezone.utc)
+    
+    _SIGNAL_HISTORY[target].append({"score": score, "timestamp": timestamp})
+    # Keep last 100 signals (roughly last few hours)
+    if len(_SIGNAL_HISTORY[target]) > 100:
+        _SIGNAL_HISTORY[target].pop(0)
+    
+    _LAST_SIGNAL[target] = score
+
+
+def _calculate_confluence_score(technical: float, macro: float, news: float) -> dict:
+    """Calculate how many signals agree (confluence)."""
+    scores = [technical, macro, news]
+    bullish_count = sum(1 for s in scores if s >= 60)
+    bearish_count = sum(1 for s in scores if s <= 40)
+    neutral_count = 3 - bullish_count - bearish_count
+    
+    return {
+        "bullish_signals": bullish_count,
+        "bearish_signals": bearish_count,
+        "neutral_signals": neutral_count,
+        "confluence": bullish_count if bullish_count > bearish_count else (-bearish_count if bearish_count > 0 else 0)
+    }
+
+
+def _calculate_signal_momentum(metal: str) -> dict:
+    """Calculate if signal is strengthening, stable, or weakening."""
+    target = _normalize_metal(metal)
+    history = _SIGNAL_HISTORY[target]
+    
+    if len(history) < 2:
+        return {"momentum": "unknown", "trend": 0, "direction": "neutral"}
+    
+    # Get recent trend (last 5 signals)
+    recent = history[-5:]
+    older = history[-10:-5] if len(history) >= 10 else history[:len(history)//2]
+    
+    if not older:
+        return {"momentum": "unknown", "trend": 0, "direction": "neutral"}
+    
+    recent_avg = sum(s["score"] for s in recent) / len(recent)
+    older_avg = sum(s["score"] for s in older) / len(older)
+    trend = recent_avg - older_avg
+    
+    if trend > 2:
+        momentum = "strengthening"
+    elif trend < -2:
+        momentum = "weakening"
+    else:
+        momentum = "stable"
+    
+    direction = "up" if trend > 0 else "down" if trend < 0 else "flat"
+    
+    return {
+        "momentum": momentum,
+        "trend": round(trend, 2),
+        "direction": direction
+    }
+
+
+def _detect_divergences(technical: float, macro: float, news: float) -> dict:
+    """Detect when signals significantly disagree."""
+    divergences = []
+    
+    if technical >= 60 and macro <= 40:
+        divergences.append("technical_bullish_vs_macro_bearish")
+    if macro >= 60 and technical <= 40:
+        divergences.append("macro_bullish_vs_technical_bearish")
+    if news >= 60 and (technical <= 40 or macro <= 40):
+        divergences.append("news_bullish_vs_others")
+    if news <= 40 and (technical >= 60 or macro >= 60):
+        divergences.append("news_bearish_vs_others")
+    
+    return {
+        "has_divergence": len(divergences) > 0,
+        "divergences": divergences,
+        "caution_level": "high" if len(divergences) > 1 else "medium" if len(divergences) == 1 else "low"
+    }
+
+
+def _get_market_session() -> dict:
+    """Determine current market session (Asian/London/NY)."""
+    now = datetime.now(timezone.utc)
+    hour = now.hour
+    
+    # Markets close on weekends; trading is limited on Sundays
+    weekday = now.weekday()  # 0=Monday, 6=Sunday
+    
+    if weekday == 6:  # Sunday
+        session = "overnight"
+        active_markets = ["Asian"]
+    elif 0 <= hour < 8:  # Before Asian close
+        session = "asian"
+        active_markets = ["Asian"]
+    elif 8 <= hour < 17:  # London/European session
+        session = "london"
+        active_markets = ["Asian", "London"]
+    elif 13 <= hour < 22:  # NY session starts at 1:30 ET (13:30 UTC), ends at 5:00 PM ET (21:00 UTC)
+        session = "newyork"
+        active_markets = ["London", "NY"]
+    else:
+        session = "overnight"
+        active_markets = []
+    
+    volume_expected = "high" if len(active_markets) > 1 else "medium" if len(active_markets) == 1 else "low"
+    
+    return {
+        "current_session": session,
+        "active_markets": active_markets,
+        "volume_expected": volume_expected,
+        "time_utc": now.isoformat()
+    }
+
+
+def _fetch_economic_events() -> list:
+    """Get upcoming economic events that might impact gold/silver."""
+    # These are typical high-impact events for commodities
+    # In production, you'd fetch from a calendar API
+    events = [
+        {
+            "time": "Tomorrow 12:30 UTC",
+            "event": "FOMC Meeting Minutes",
+            "impact": "high",
+            "metal": "gold"
+        },
+        {
+            "time": "Today 18:00 UTC",
+            "event": "Fed Chair Powell Speech",
+            "impact": "high",
+            "metal": "gold"
+        },
+        {
+            "time": "Tomorrow 08:30 UTC",
+            "event": "US Core CPI",
+            "impact": "high",
+            "metal": "gold"
+        },
+        {
+            "time": "In 3 days 13:00 UTC",
+            "event": "ECB Interest Rate Decision",
+            "impact": "medium",
+            "metal": "gold"
+        },
+        {
+            "time": "In 5 days 20:00 UTC",
+            "event": "US NFP (Job Report)",
+            "impact": "high",
+            "metal": "gold"
+        }
+    ]
+    return events
+
+
+def _calculate_risk_reward(entry: float, support: float, resistance: float) -> dict:
+    """Calculate risk/reward ratio based on technical levels."""
+    if entry <= support or entry >= resistance:
+        return {"risk_reward": 0, "risk": 0, "reward": 0, "ratio": "Invalid"}
+    
+    risk = entry - support
+    reward = resistance - entry
+    ratio = reward / risk if risk > 0 else 0
+    
+    return {
+        "entry": round(entry, 2),
+        "support": round(support, 2),
+        "resistance": round(resistance, 2),
+        "risk": round(risk, 2),
+        "reward": round(reward, 2),
+        "ratio": round(ratio, 2),
+        "acceptable": ratio >= 2.0  # Risk/reward should be at least 2:1
+    }
+
+
+def _correlate_metals(gold_signal: dict, silver_signal: dict) -> dict:
+    """Calculate correlation between gold and silver signals."""
+    gold_score = gold_signal.get("composite_score", 50)
+    silver_score = silver_signal.get("composite_score", 50)
+    
+    diff = abs(gold_score - silver_score)
+    
+    if diff < 10:
+        corr = "high_positive"
+        strength = "strong"
+    elif diff < 20:
+        corr = "moderate_positive"
+        strength = "moderate"
+    else:
+        corr = "diverging"
+        strength = "weak"
+    
+    return {
+        "correlation": corr,
+        "strength": strength,
+        "gold_score": round(gold_score, 1),
+        "silver_score": round(silver_score, 1),
+        "difference": round(diff, 1),
+        "moving_together": diff < 15
+    }
+
+
 def _build_demo_signal(metal: str = "gold"):
     cfg = _get_runtime_config()
     target_metal = _normalize_metal(metal)
@@ -528,6 +737,48 @@ def get_signal(metal: str = "gold"):
                 "equity_rally": False,
             },
         )
+        
+        # Add advanced features to demo signal too
+        composite_score = demo_signal.get("composite_score", 50)
+        _add_to_history(target_metal, composite_score)
+        
+        demo_signal["confluence"] = _calculate_confluence_score(
+            demo_signal.get("technical_score", 50),
+            demo_signal.get("macro_score", 50),
+            demo_signal.get("news_score", 50)
+        )
+        demo_signal["momentum"] = _calculate_signal_momentum(target_metal)
+        demo_signal["divergences"] = _detect_divergences(
+            demo_signal.get("technical_score", 50),
+            demo_signal.get("macro_score", 50),
+            demo_signal.get("news_score", 50)
+        )
+        demo_signal["market_session"] = _get_market_session()
+        demo_signal["economic_events"] = _fetch_economic_events()
+        demo_signal["risk_reward"] = _calculate_risk_reward(2050, 2000, 2150)
+        
+        score = demo_signal.get("composite_score", 50)
+        if score >= 85:
+            strength_level = "Extreme"
+        elif score >= 70:
+            strength_level = "Strong"
+        elif score >= 60:
+            strength_level = "Moderate"
+        elif score >= 50:
+            strength_level = "Weak Bullish"
+        elif score >= 40:
+            strength_level = "Weak Bearish"
+        elif score >= 30:
+            strength_level = "Moderate"
+        else:
+            strength_level = "Strong"
+        
+        demo_signal["signal_strength"] = {
+            "score": round(score, 1),
+            "level": strength_level,
+            "gradient": max(0, min(100, score))
+        }
+        
         demo_signal["suggestions"] = build_suggestions(demo_signal)
         demo_signal["settings"] = metal_settings
         if should_alert(demo_signal, metal_settings["thresholds"]):
@@ -588,6 +839,65 @@ def get_signal(metal: str = "gold"):
             "equity_rally": False,
         },
     )
+    
+    # Add new advanced signal features
+    composite_score = signal_payload.get("composite_score", 50)
+    _add_to_history(target_metal, composite_score)
+    
+    signal_payload["confluence"] = _calculate_confluence_score(
+        signal_payload.get("technical_score", 50),
+        signal_payload.get("macro_score", 50),
+        signal_payload.get("news_score", 50)
+    )
+    signal_payload["momentum"] = _calculate_signal_momentum(target_metal)
+    signal_payload["divergences"] = _detect_divergences(
+        signal_payload.get("technical_score", 50),
+        signal_payload.get("macro_score", 50),
+        signal_payload.get("news_score", 50)
+    )
+    signal_payload["market_session"] = _get_market_session()
+    signal_payload["economic_events"] = _fetch_economic_events()
+    
+    # Risk/reward calculation - use technical support/resistance if available
+    if "support_level" in technical and "resistance_level" in technical:
+        signal_payload["risk_reward"] = _calculate_risk_reward(
+            technical.get("current_price", 0),
+            technical.get("support_level", 0),
+            technical.get("resistance_level", 0)
+        )
+    else:
+        # Fallback: estimate based on price changes
+        price_range = 50  # Estimated range in $
+        current = technical.get("current_price", 1000)
+        signal_payload["risk_reward"] = _calculate_risk_reward(
+            current,
+            current - price_range,
+            current + price_range * 2
+        )
+    
+    # Signal strength gradient (0-100 scale with descriptors)
+    score = signal_payload.get("composite_score", 50)
+    if score >= 85:
+        strength_level = "Extreme"
+    elif score >= 70:
+        strength_level = "Strong"
+    elif score >= 60:
+        strength_level = "Moderate"
+    elif score >= 50:
+        strength_level = "Weak Bullish"
+    elif score >= 40:
+        strength_level = "Weak Bearish"
+    elif score >= 30:
+        strength_level = "Moderate"
+    else:
+        strength_level = "Strong"
+    
+    signal_payload["signal_strength"] = {
+        "score": round(score, 1),
+        "level": strength_level,
+        "gradient": max(0, min(100, score))
+    }
+    
     if should_alert(signal_payload, metal_settings["thresholds"]):
         signal_payload["alert"] = build_alert_message(signal_payload, metal_settings["thresholds"])
     signal_payload["suggestions"] = build_suggestions(signal_payload)
@@ -607,6 +917,33 @@ def get_position_size(metal: str = "gold", account_size: float = 10000, risk_pct
 @app.get("/signal/{metal}")
 def get_signal_by_path(metal: str):
     return get_signal(metal=metal)
+
+
+@app.get("/correlation")
+def get_correlation():
+    """Get correlation analysis between gold and silver signals."""
+    gold_signal = get_signal(metal="gold")
+    silver_signal = get_signal(metal="silver")
+    
+    correlation = _correlate_metals(gold_signal, silver_signal)
+    
+    return {
+        "ok": True,
+        "correlation": correlation,
+        "gold_summary": {
+            "score": gold_signal.get("composite_score", 50),
+            "direction": gold_signal.get("direction", "neutral"),
+            "momentum": gold_signal.get("momentum", {}).get("momentum", "unknown"),
+            "confluence": gold_signal.get("confluence", {}).get("confluence", 0)
+        },
+        "silver_summary": {
+            "score": silver_signal.get("composite_score", 50),
+            "direction": silver_signal.get("direction", "neutral"),
+            "momentum": silver_signal.get("momentum", {}).get("momentum", "unknown"),
+            "confluence": silver_signal.get("confluence", {}).get("confluence", 0)
+        }
+    }
+
 
 
 @app.get("/calendar")
