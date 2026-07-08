@@ -576,6 +576,7 @@
             <div class="metric-card chart-card">
               <div class="chart-topline"><div class="section-title">Rating</div></div>
               <div class="chart-wrap"><canvas id="gamma-detail-chart-main"></canvas></div>
+              <div id="gamma-rating-explanation" class="small" style="margin-top: 0.6rem; padding: 0.6rem; background: rgba(213, 243, 236, 0.05); border-radius: 8px; color: #b0dbd0; line-height: 1.4;">Rating explanation loading…</div>
             </div>
           </div>
           <div id="gamma-context" style="margin-top: 1rem; padding: 0.8rem; background: rgba(30, 58, 95, 0.15); border-radius: 10px; color: #d5f3ec; font-size: 0.9rem;">Gamma regime context loading…</div>
@@ -702,6 +703,36 @@
         return { canvas, ctx, width, height };
       }
 
+      function updateGammaRatingExplanation(gammaScore) {
+        const score = Number(gammaScore || 50);
+        let rating, description;
+
+        if (score >= 80) {
+          rating = 'A+';
+          description = 'Exceptional gamma setup. Dealers are heavily positioned, creating strong tailwinds for price momentum in the current direction.';
+        } else if (score >= 68) {
+          rating = 'A';
+          description = 'Excellent gamma conditions. Strong dealer positioning supporting current market momentum with good flow dynamics.';
+        } else if (score >= 58) {
+          rating = 'B';
+          description = 'Good gamma exposure. Moderate dealer positioning providing reasonable support for market direction.';
+        } else if (score >= 46) {
+          rating = 'C';
+          description = 'Neutral gamma environment. Dealers are roughly balanced with limited directional bias or support.';
+        } else if (score >= 34) {
+          rating = 'D';
+          description = 'Weak gamma conditions. Dealers are positioned against current momentum, creating potential headwinds.';
+        } else {
+          rating = 'F';
+          description = 'Poor gamma setup. Heavy dealer opposition likely limiting upside or creating vulnerability to sharp moves.';
+        }
+
+        const explanationEl = document.getElementById('gamma-rating-explanation');
+        if (explanationEl) {
+          explanationEl.innerHTML = `<strong>Rating ${rating}</strong><br>${description}`;
+        }
+      }
+
       function renderAllCharts() {
         const visibleScore = getVisibleSeries(signalHistory, signalTimestamps);
         const visiblePrice = getVisibleSeries(priceHistory, priceTimestamps);
@@ -715,6 +746,7 @@
         drawScenarioChart(latestChartState.score);
         drawGammaChartMain(latestChartState.gammaScore, latestChartState.gammaExposure);
         drawGammaDetailChartMain(latestChartState.gammaScore);
+        updateGammaRatingExplanation(latestChartState.gammaScore);
         drawDeltaChartMain(latestChartState.deltaPosition, latestChartState.hedgeRatio);
         drawHedgeChartMain(latestChartState.hedgeEffectiveness);
         updateValueStrips(visibleScore.values, visibleScore.timestamps, visiblePrice.values, visiblePrice.timestamps);
