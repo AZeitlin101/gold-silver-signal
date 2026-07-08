@@ -1,4 +1,4 @@
-const CACHE_NAME = "gold-signal-v1";
+const CACHE_NAME = "gold-signal-v2";
 const CORE_ASSETS = [
   "/",
   "/manifest.webmanifest",
