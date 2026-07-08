@@ -765,7 +765,7 @@
         drawPriceChart(visiblePrice.values, visiblePrice.timestamps);
         drawSignalHistoryChart(visibleScore.values, visibleScore.timestamps);
         drawComponentChart(latestChartState.technical, latestChartState.macro, latestChartState.news);
-        drawMomentumChart(latestChartState.technical);
+        drawMomentumChart(latestChartState.score, latestChartState.direction, signalHistory);
         drawDriverChart(latestChartState.technical, latestChartState.macro, latestChartState.news, latestChartState.score);
         drawRegimeChart(latestChartState.score, latestChartState.direction);
         drawSupportChart(latestChartState.currentPrice);
@@ -2055,13 +2055,25 @@
         });
       }
 
-      function drawMomentumChart(score) {
+      function drawMomentumChart(score, direction, history) {
         const chartContext = getChartContext('momentum-chart', 230);
         if (!chartContext) return;
         const { ctx, width, height } = chartContext;
         ctx.fillStyle = '#08111c';
         ctx.fillRect(0, 0, width, height);
 
+        const rsi = Math.max(10, Math.min(90, score));
+        
+        // Draw momentum zones (overbought/neutral/oversold)
+        // Overbought zone (70+)
+        ctx.fillStyle = 'rgba(34, 197, 94, 0.08)';
+        ctx.fillRect(0, 0, width, (height * (90 - 70)) / 80);
+        
+        // Oversold zone (30-)
+        ctx.fillStyle = 'rgba(248, 113, 113, 0.08)';
+        ctx.fillRect(0, (height * (90 - 30)) / 80, width, height);
+
+        // Draw center line (neutral 50)
         ctx.strokeStyle = '#22344d';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -2069,14 +2081,67 @@
         ctx.lineTo(width - 20, height / 2);
         ctx.stroke();
 
-        const rsi = Math.max(10, Math.min(90, score));
+        // Draw threshold lines
+        ctx.strokeStyle = '#4a7c59';
+        ctx.lineWidth = 0.5;
+        ctx.setLineDash([4, 4]);
+        
+        // 70 line (overbought)
+        const line70 = height / 2 - (70 - 50) * 1.6;
+        ctx.beginPath();
+        ctx.moveTo(20, line70);
+        ctx.lineTo(width - 20, line70);
+        ctx.stroke();
+        
+        // 30 line (oversold)
+        const line30 = height / 2 - (30 - 50) * 1.6;
+        ctx.beginPath();
+        ctx.moveTo(20, line30);
+        ctx.lineTo(width - 20, line30);
+        ctx.stroke();
+        
+        ctx.setLineDash([]);
+
+        // Plot historical momentum (last 10 values)
+        if (history && history.length > 1) {
+          ctx.strokeStyle = 'rgba(244, 247, 251, 0.3)';
+          ctx.lineWidth = 1;
+          const step = Math.max(1, Math.floor(history.length / 10));
+          const startIdx = Math.max(0, history.length - 15);
+          let firstPoint = true;
+          
+          for (let i = startIdx; i < history.length; i += step) {
+            const val = Math.max(10, Math.min(90, history[i]));
+            const px = 100 + ((i - startIdx) * (width - 140)) / (history.length - startIdx);
+            const py = height / 2 - (val - 50) * 1.6;
+            
+            if (firstPoint) {
+              ctx.beginPath();
+              ctx.moveTo(px, py);
+              firstPoint = false;
+            } else {
+              ctx.lineTo(px, py);
+            }
+          }
+          ctx.stroke();
+        }
+
+        // Draw current momentum point
         const x = 60;
         const y = height / 2 - (rsi - 50) * 1.6;
-        ctx.fillStyle = rsi > 65 ? '#22c55e' : rsi < 35 ? '#f87171' : '#fbbf24';
+        ctx.fillStyle = rsi > 70 ? '#22c55e' : rsi > 65 ? '#84cc16' : rsi < 30 ? '#f87171' : rsi < 35 ? '#f97316' : '#fbbf24';
         ctx.beginPath();
-        ctx.arc(x, y, 18, 0, Math.PI * 2);
+        ctx.arc(x, y, 20, 0, Math.PI * 2);
         ctx.fill();
+        
+        // Draw outline
+        ctx.strokeStyle = '#f4f7fb';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, 20, 0, Math.PI * 2);
+        ctx.stroke();
 
+        // Draw trend line
         ctx.strokeStyle = '#f4f7fb';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -2084,10 +2149,43 @@
         ctx.lineTo(width - 40, height / 2 - (rsi - 50) * 1.4);
         ctx.stroke();
 
+        // Labels and text
         ctx.fillStyle = '#f4f7fb';
-        ctx.font = '12px Arial';
-        ctx.fillText('Momentum', 14, 18);
-        ctx.fillText(`RSI-like ${rsi.toFixed(0)}`, 14, height - 12);
+        ctx.font = 'bold 13px Arial';
+        ctx.fillText('Momentum', 14, 16);
+        
+        ctx.font = '11px Arial';
+        ctx.fillStyle = '#a5b4fc';
+        
+        // RSI value
+        ctx.font = 'bold 14px Arial';
+        ctx.fillStyle = rsi > 70 ? '#22c55e' : rsi > 65 ? '#84cc16' : rsi < 30 ? '#f87171' : rsi < 35 ? '#f97316' : '#fbbf24';
+        ctx.fillText(`${rsi.toFixed(0)}`, 14, height - 12);
+        
+        ctx.font = '10px Arial';
+        ctx.fillStyle = '#a5b4fc';
+        ctx.fillText('RSI', 14, height + 2);
+
+        // Zone label
+        ctx.font = '9px Arial';
+        ctx.fillStyle = '#7c8ba4';
+        if (rsi > 70) {
+          ctx.fillText('Overbought', width - 85, 16);
+        } else if (rsi > 65) {
+          ctx.fillText('Strong Bull', width - 80, 16);
+        } else if (rsi < 30) {
+          ctx.fillText('Oversold', width - 85, height - 6);
+        } else if (rsi < 35) {
+          ctx.fillText('Strong Bear', width - 80, height - 6);
+        } else {
+          ctx.fillText('Neutral', width - 75, height / 2 - 8);
+        }
+
+        // Momentum direction indicator
+        ctx.font = '11px Arial';
+        ctx.fillStyle = direction === 'bullish' ? '#22c55e' : direction === 'bearish' ? '#f87171' : '#fbbf24';
+        const dirIcon = direction === 'bullish' ? '↑ Bull' : direction === 'bearish' ? '↓ Bear' : '→ Neutral';
+        ctx.fillText(dirIcon, width - 90, height - 28);
       }
 
       function drawDriverChart(technical, macro, news, composite) {
