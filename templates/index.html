@@ -1,0 +1,2733 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#120d03" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Gold Signal" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/icon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png" />
+    <title>Gold Signal Dashboard</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #07111f;
+        --bg-2: #0d1728;
+        --panel: #101b2d;
+        --panel-2: #16263d;
+        --text: #f4f7fb;
+        --muted: #8ea0b8;
+        --border: #22344d;
+        --accent: #2dd4bf;
+        --accent-2: #3b82f6;
+        --theme-glow: rgba(30, 58, 95, 0.28);
+        --bullish: #22c55e;
+        --bearish: #f87171;
+        --neutral: #fbbf24;
+      }
+
+      body[data-metal='gold'] {
+        --bg: #120d03;
+        --bg-2: #251806;
+        --panel: #2a1e08;
+        --panel-2: #34270e;
+        --border: #5a4717;
+        --accent: #f7c948;
+        --accent-2: #d79a1c;
+        --muted: #d2c19a;
+        --theme-glow: rgba(247, 201, 72, 0.25);
+      }
+
+      body[data-metal='silver'] {
+        --bg: #0b131d;
+        --bg-2: #152232;
+        --panel: #142131;
+        --panel-2: #1b2d42;
+        --border: #324a63;
+        --accent: #9fc4e6;
+        --accent-2: #6e90b5;
+        --muted: #b8cbde;
+        --theme-glow: rgba(159, 196, 230, 0.25);
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        font-family: Inter, Arial, sans-serif;
+        margin: 0;
+        padding: 2rem 1rem 3rem;
+        background: linear-gradient(135deg, var(--bg), var(--bg-2));
+        color: var(--text);
+        line-height: 1.5;
+      }
+      .page { max-width: 1180px; margin: 0 auto; }
+      .card {
+        background: rgba(16, 27, 45, 0.92);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem 1.5rem;
+        margin-bottom: 1.2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      }
+      .card:hover {
+        border-color: rgba(213, 243, 236, 0.2);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.35);
+      }
+      .hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .hero-right {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.4rem;
+        min-width: 220px;
+      }
+      h1 { margin: 0 0 0.35rem; font-size: 1.9rem; }
+      .lead { color: var(--muted); margin: 0 0 1rem; }
+      .eyebrow { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--accent); margin-bottom: 0.4rem; }
+      .score { font-size: 2.6rem; font-weight: 700; }
+      .score-unit { font-size: 1rem; color: var(--muted); }
+      .tag {
+        display: inline-block;
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        margin-top: 0.3rem;
+      }
+      .tag.bullish { background: rgba(34,197,94,0.16); color: var(--bullish); }
+      .tag.bearish { background: rgba(248,113,113,0.16); color: var(--bearish); }
+      .tag.neutral { background: rgba(251,191,36,0.16); color: var(--neutral); }
+      .meta-row { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.8rem; }
+      .pill {
+        display: inline-block;
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        background: var(--panel-2);
+        color: var(--text);
+        font-size: 0.9rem;
+      }
+      button {
+        padding: 0.65rem 0.95rem;
+        border: none;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        color: white;
+        cursor: pointer;
+        font-weight: 700;
+      }
+      button.secondary { background: var(--panel-2); }
+      input, select { padding: 0.45rem 0.6rem; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); width: 100%; }
+      .grid-2 { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 1.5rem; }
+      .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; }
+      .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
+      .chart-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
+      .analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; margin-top: 0.8rem; }
+      .chart-wall { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem; margin-top: 0.85rem; }
+      .chart-topline { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+      .chart-chip {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.11em;
+        color: var(--text);
+        background: color-mix(in srgb, var(--accent) 22%, transparent);
+        border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+        border-radius: 999px;
+        padding: 0.2rem 0.45rem;
+      }
+      .metal-tabs { display: inline-flex; gap: 0.45rem; margin: 0.45rem 0 0.35rem; }
+      .metal-tab {
+        border: 1px solid var(--border);
+        background: rgba(16, 27, 45, 0.9);
+        color: var(--muted);
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .metal-tab.active {
+        color: #e8f3ff;
+        border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, transparent), color-mix(in srgb, var(--accent-2) 30%, transparent));
+      }
+      .insight-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.7rem; margin-top: 0.9rem; }
+      .insight-card {
+        background: rgba(10, 21, 36, 0.82);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.7rem;
+        cursor: pointer;
+        transition: border-color 0.2s ease, transform 0.2s ease;
+      }
+      .insight-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+      .insight-title { color: var(--muted); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.11em; }
+      .insight-value { font-size: 1.05rem; font-weight: 700; margin-top: 0.2rem; }
+      .insight-note { color: var(--muted); font-size: 0.82rem; margin-top: 0.2rem; }
+      .insight-hint { margin-top: 0.45rem; color: #9cc9f7; font-size: 0.78rem; }
+      .analysis-note {
+        margin-top: 0.75rem;
+        padding: 0.65rem 0.8rem;
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--accent) 10%, transparent);
+        border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+        color: #d5f3ec;
+        font-size: 0.9rem;
+      }
+      .metric-card {
+        position: relative;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.8rem;
+        cursor: pointer;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+      }
+      .metric-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+      }
+      .pulse-card {
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.8rem;
+      }
+      .pulse-title { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.14em; }
+      .pulse-value { font-size: 1.04rem; font-weight: 700; margin-top: 0.25rem; }
+      .pulse-badge {
+        display: inline-block;
+        margin-top: 0.45rem;
+        padding: 0.25rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+      .pulse-badge.positive { background: rgba(34,197,94,0.15); color: var(--bullish); }
+      .pulse-badge.negative { background: rgba(248,113,113,0.15); color: var(--bearish); }
+      .pulse-badge.neutral { background: rgba(251,191,36,0.15); color: var(--neutral); }
+      .metric-label { color: var(--muted); font-size: 0.82rem; }
+      .metric-value { font-size: 1.2rem; font-weight: 700; margin-top: 0.2rem; }
+      .metric-detail { color: var(--muted); font-size: 0.86rem; margin-top: 0.2rem; }
+      .section-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.08em; color: #d5f3ec; padding-bottom: 0.6rem; border-bottom: 2px solid rgba(213, 243, 236, 0.15); }
+      .alert-box {
+        margin-top: 0.8rem;
+        padding: 0.7rem 0.8rem;
+        border-radius: 10px;
+        background: rgba(248,113,113,0.15);
+        color: #fecaca;
+        border: 1px solid rgba(248,113,113,0.35);
+      }
+      .list-item {
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.75rem;
+        margin-bottom: 0.55rem;
+      }
+      .list-title { font-weight: 700; }
+      .list-description { color: var(--muted); font-size: 0.95rem; margin-top: 0.2rem; }
+      .priority { display: inline-block; margin-top: 0.45rem; padding: 0.2rem 0.5rem; font-size: 0.78rem; border-radius: 999px; text-transform: uppercase; }
+      .priority.high { background: rgba(34,197,94,0.16); color: var(--bullish); }
+      .priority.medium { background: rgba(251,191,36,0.16); color: var(--neutral); }
+      .priority.low { background: rgba(59,130,246,0.16); color: #93c5fd; }
+      .context-list { margin: 0; padding-left: 1rem; color: var(--muted); }
+      .context-list li { margin-bottom: 0.35rem; }
+      .chart-wrap {
+        width: 100%;
+        min-height: 230px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: radial-gradient(circle at 20% 15%, var(--theme-glow), rgba(8, 18, 32, 0.95));
+        padding: 0.25rem;
+      }
+      .chart-wrap canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        border-radius: 8px;
+      }
+      .value-strip {
+        margin-top: 0.45rem;
+        padding: 0.38rem 0.55rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: rgba(8, 17, 28, 0.8);
+        color: #d7e2f0;
+        font-size: 0.82rem;
+      }
+      .range-tabs {
+        display: inline-flex;
+        gap: 0.35rem;
+        margin: 0.45rem 0 0.55rem;
+      }
+      .range-tab {
+        border: 1px solid var(--border);
+        background: rgba(16, 27, 45, 0.9);
+        color: var(--muted);
+        font-size: 0.74rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+      }
+      .range-tab.active {
+        color: var(--text);
+        border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+        background: color-mix(in srgb, var(--accent) 22%, transparent);
+      }
+      .view-tabs {
+        display: inline-flex;
+        gap: 0.35rem;
+        margin: 0.15rem 0 0.7rem;
+      }
+      .view-tab {
+        border: 1px solid var(--border);
+        background: rgba(16, 27, 45, 0.9);
+        color: var(--muted);
+        font-size: 0.74rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+      }
+      .view-tab.active {
+        color: var(--text);
+        border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+        background: color-mix(in srgb, var(--accent) 22%, transparent);
+      }
+      .chart-tooltip {
+        position: absolute;
+        display: none;
+        pointer-events: none;
+        z-index: 5;
+        padding: 0.3rem 0.45rem;
+        border-radius: 7px;
+        background: rgba(5, 12, 22, 0.95);
+        border: 1px solid rgba(142, 160, 184, 0.4);
+        color: #f4f7fb;
+        font-size: 0.75rem;
+        transform: translate(8px, -28px);
+        white-space: nowrap;
+      }
+      #confidence-gauge {
+        border: none;
+        background: transparent;
+      }
+      .gauge-wrap { text-align: center; }
+      .gauge-label { color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem; }
+      .readiness-box {
+        width: 100%;
+        margin-top: 0.35rem;
+        padding: 0.55rem 0.7rem;
+        border-radius: 10px;
+        background: rgba(45, 212, 191, 0.1);
+        border: 1px solid rgba(45, 212, 191, 0.2);
+        text-align: center;
+        font-size: 0.9rem;
+      }
+      .journal-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.6rem; align-items: end; }
+      .small { font-size: 0.9rem; color: var(--muted); }
+      pre { background: #08111c; color: #d7e2f0; padding: 0.9rem; border-radius: 8px; overflow-x: auto; }
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(3, 8, 15, 0.82);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .modal-backdrop.active {
+        display: flex;
+        opacity: 1;
+      }
+      .modal-card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        width: min(900px, 100%);
+        padding: 1rem;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+        transform: translateY(8px);
+        transition: transform 0.2s ease;
+      }
+      .modal-backdrop.active .modal-card { transform: translateY(0); }
+      .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; }
+      .modal-close { cursor: pointer; font-size: 1.2rem; color: var(--muted); }
+      .legend-row { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 0.6rem; color: var(--muted); font-size: 0.9rem; }
+      .legend-item { display: flex; align-items: center; gap: 0.35rem; }
+      .legend-swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+      .insight-modal-value { font-size: 1.55rem; font-weight: 700; margin-bottom: 0.3rem; }
+      .insight-modal-note { color: var(--muted); margin-bottom: 0.7rem; }
+      .insight-modal-help {
+        padding: 0.7rem 0.8rem;
+        border-radius: 10px;
+        border: 1px solid rgba(59, 130, 246, 0.28);
+        background: rgba(59, 130, 246, 0.1);
+        color: #dcecff;
+        font-size: 0.92rem;
+      }
+      .settings-scope {
+        display: inline-block;
+        margin-bottom: 0.65rem;
+        padding: 0.32rem 0.62rem;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+        background: color-mix(in srgb, var(--accent) 18%, transparent);
+        color: var(--text);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+      .calendar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 0.7rem; }
+      .calendar-risk {
+        border: 1px solid var(--border);
+        background: var(--panel-2);
+        border-radius: 12px;
+        padding: 0.75rem;
+      }
+      .calendar-events {
+        border: 1px solid var(--border);
+        background: var(--panel-2);
+        border-radius: 12px;
+        padding: 0.75rem;
+      }
+      .calendar-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.4rem;
+        padding: 0.45rem 0;
+        border-bottom: 1px solid rgba(142, 160, 184, 0.18);
+      }
+      .calendar-row:last-child { border-bottom: none; }
+      .calendar-badge {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.74rem;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .calendar-badge.high { background: rgba(248,113,113,0.18); color: #fecaca; }
+      .calendar-badge.medium { background: rgba(251,191,36,0.18); color: #fde68a; }
+      .calendar-badge.low { background: rgba(34,197,94,0.18); color: #bbf7d0; }
+      .trade-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.7rem; }
+      .trade-cell {
+        border: 1px solid var(--border);
+        background: var(--panel-2);
+        border-radius: 10px;
+        padding: 0.7rem;
+      }
+      .trade-label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+      .trade-value { font-size: 1.08rem; font-weight: 700; margin-top: 0.2rem; }
+      .trade-note { margin-top: 0.15rem; font-size: 0.82rem; color: var(--muted); }
+      .sizing-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.6rem; margin-top: 0.8rem; align-items: end; }
+      @media (max-width: 900px) { .grid-2, .grid-3, .grid-4, .chart-grid, .chart-wall { grid-template-columns: 1fr; } .journal-row { grid-template-columns: 1fr; } }
+      @media (max-width: 900px) { .analysis-grid, .insight-grid { grid-template-columns: 1fr; } }
+      @media (max-width: 900px) { .calendar-grid { grid-template-columns: 1fr; } }
+      @media (max-width: 900px) { .trade-grid, .sizing-row { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1 id="app-title">Gold Signal Dashboard</h1>
+      <p id="app-lead" class="lead">A clearer view of gold's current technical, macro, and news bias.</p>
+      <div class="metal-tabs" role="tablist" aria-label="Metal selection">
+        <button id="tab-gold" class="metal-tab active" onclick="setMetal('gold')" role="tab" aria-selected="true">Gold</button>
+        <button id="tab-silver" class="metal-tab" onclick="setMetal('silver')" role="tab" aria-selected="false">Silver</button>
+      </div>
+
+      <div class="card hero">
+        <div>
+          <div class="eyebrow">Live signal</div>
+          <div id="summary-score" class="score">--</div>
+          <div id="summary-direction" class="tag neutral">Loading…</div>
+          <div class="meta-row">
+            <span class="pill" id="summary-time">Updated just now</span>
+            <span class="pill" id="summary-source">Demo</span>
+          </div>
+          <p id="summary-blurb" class="small" style="margin-top: 0.7rem;">Loading the latest market read…</p>
+        </div>
+        <div class="hero-right">
+          <div class="gauge-wrap">
+            <canvas id="confidence-gauge" width="180" height="120"></canvas>
+            <div id="confidence-label" class="gauge-label">Confidence loading…</div>
+            <div id="readiness-box" class="readiness-box">Readiness loading…</div>
+          </div>
+          <button onclick="loadSignal()">Refresh signal</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Market pulse</div>
+        <div id="market-pulse-output" class="grid-4">Loading…</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-title">Signal confluence</div>
+          <div id="confluence-output" style="font-size: 0.95rem; line-height: 1.6;">Loading…</div>
+        </div>
+        <div class="card">
+          <div class="section-title">Signal momentum</div>
+          <div id="momentum-output" style="font-size: 0.95rem; line-height: 1.6;">Loading…</div>
+        </div>
+      </div>
+
+      <div class="card" id="divergence-card" style="display:none;">
+        <div class="section-title">⚠️ Divergence Alert</div>
+        <div id="divergence-output" style="font-size: 0.95rem; line-height: 1.6;">Loading…</div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Market session & hours</div>
+        <div id="market-session-output" style="font-size: 0.95rem; line-height: 1.6;">Loading…</div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Economic calendar risk</div>
+        <div id="calendar-output" class="calendar-grid">Loading…</div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Gold vs Silver correlation</div>
+        <div id="correlation-output" style="font-size: 0.95rem; line-height: 1.6;">Loading…</div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Trade plan</div>
+        <div class="small">Actionable levels with risk/reward and position sizing based on current signal context.</div>
+        <div id="trade-plan-output" class="trade-grid" style="margin-top:0.8rem;">Loading…</div>
+        <div class="sizing-row">
+          <div>
+            <label class="small">Account size</label><br />
+            <input id="account-size" value="10000" />
+          </div>
+          <div>
+            <label class="small">Risk per trade (%)</label><br />
+            <input id="risk-pct" value="1.0" />
+          </div>
+          <button class="secondary" onclick="calculatePositionSize()">Recalculate size</button>
+        </div>
+        <div id="position-sizing-output" class="small" style="margin-top:0.7rem;">Awaiting plan…</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-title">Signal breakdown</div>
+          <div id="signal-output">Loading…</div>
+          <div id="alert-output"></div>
+        </div>
+        <div class="card">
+          <div class="section-title">Suggested actions</div>
+          <div id="suggestions-output">Loading…</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Chart grid</div>
+        <div class="small">Core and deep-dive views are organized in one clean visual wall.</div>
+        <div class="view-tabs" role="tablist" aria-label="Chart view tabs">
+          <button id="view-core" class="view-tab active" onclick="setChartView('core')">Core</button>
+          <button id="view-levels" class="view-tab" onclick="setChartView('levels')">Levels</button>
+          <button id="view-outlook" class="view-tab" onclick="setChartView('outlook')">Outlook</button>
+          <button id="view-all" class="view-tab" onclick="setChartView('all')">All</button>
+        </div>
+        <div class="range-tabs" role="tablist" aria-label="Core chart range">
+          <button id="range-1d" class="range-tab active" onclick="setChartRange('1d')">1D</button>
+          <button id="range-1w" class="range-tab" onclick="setChartRange('1w')">1W</button>
+          <button id="range-1m" class="range-tab" onclick="setChartRange('1m')">1M</button>
+        </div>
+        <div class="chart-wall">
+          <div class="metric-card chart-card" data-view="core" onclick="openChartModal(getMetalDisplayName(currentMetal) + ' price', 'price-chart')">
+            <div class="chart-topline"><div id="price-card-title" class="section-title">Gold price</div><div class="chart-chip">Core</div></div>
+            <div class="chart-wrap"><canvas id="price-chart"></canvas></div>
+            <div id="price-tooltip" class="chart-tooltip"></div>
+            <div id="price-value-strip" class="value-strip">Now -- | High -- | Low --</div>
+          </div>
+          <div class="metric-card chart-card" data-view="core" onclick="openChartModal('Signal history', 'signal-chart')">
+            <div class="chart-topline"><div class="section-title">Signal history</div><div class="chart-chip">Core</div></div>
+            <div class="chart-wrap"><canvas id="signal-chart"></canvas></div>
+            <div id="signal-tooltip" class="chart-tooltip"></div>
+            <div id="signal-value-strip" class="value-strip">Now -- | High -- | Low --</div>
+          </div>
+          <div class="metric-card chart-card" data-view="core" onclick="openChartModal('Component mix', 'component-chart')">
+            <div class="chart-topline"><div class="section-title">Component mix</div><div class="chart-chip">Core</div></div>
+            <div class="chart-wrap"><canvas id="component-chart"></canvas></div>
+          </div>
+          <div class="metric-card chart-card" data-view="core" onclick="openChartModal('Momentum / RSI', 'momentum-chart')">
+            <div class="chart-topline"><div class="section-title">Momentum / RSI</div><div class="chart-chip">Core</div></div>
+            <div class="chart-wrap"><canvas id="momentum-chart"></canvas></div>
+          </div>
+          <div class="metric-card chart-card" data-view="levels" onclick="openChartModal('Driver correlation', 'driver-chart')">
+            <div class="chart-topline"><div class="section-title">Driver correlation</div><div class="chart-chip">Deep</div></div>
+            <div class="chart-wrap"><canvas id="driver-chart"></canvas></div>
+          </div>
+          <div class="metric-card chart-card" data-view="levels" onclick="openChartModal('Regime view', 'regime-chart')">
+            <div class="chart-topline"><div class="section-title">Regime view</div><div class="chart-chip">Deep</div></div>
+            <div class="chart-wrap"><canvas id="regime-chart"></canvas></div>
+          </div>
+          <div class="metric-card chart-card" data-view="levels" onclick="openChartModal('Support / resistance', 'support-chart')">
+            <div class="chart-topline"><div class="section-title">Support / resistance</div><div class="chart-chip">Deep</div></div>
+            <div class="chart-wrap"><canvas id="support-chart"></canvas></div>
+          </div>
+          <div class="metric-card chart-card" data-view="outlook" onclick="openChartModal('Scenario outlook', 'scenario-chart')">
+            <div class="chart-topline"><div class="section-title">Scenario outlook</div><div class="chart-chip">Deep</div></div>
+            <div class="chart-wrap"><canvas id="scenario-chart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-title">Gamma Exposure</div>
+          <div class="small">Dealer gamma positioning and regime implications</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+            <div class="metric-card chart-card">
+              <div class="chart-topline"><div class="section-title">Gamma score</div></div>
+              <div class="chart-wrap"><canvas id="gamma-chart-main"></canvas></div>
+              <div id="gamma-value-strip-main" class="value-strip" style="margin-top: 0.5rem;">Score -- | Exposure --</div>
+            </div>
+            <div class="metric-card chart-card">
+              <div class="chart-topline"><div class="section-title">Rating</div></div>
+              <div class="chart-wrap"><canvas id="gamma-detail-chart-main"></canvas></div>
+              <div id="gamma-rating-explanation" class="small" style="margin-top: 0.6rem; padding: 0.6rem; background: rgba(213, 243, 236, 0.05); border-radius: 8px; color: #b0dbd0; line-height: 1.4;">Rating explanation loading…</div>
+            </div>
+          </div>
+          <div id="gamma-context" style="margin-top: 1rem; padding: 0.8rem; background: rgba(30, 58, 95, 0.15); border-radius: 10px; color: #d5f3ec; font-size: 0.9rem;">Gamma regime context loading…</div>
+        </div>
+        <div class="card">
+          <div class="section-title">Delta Hedging</div>
+          <div class="small">Position delta and hedge effectiveness metrics</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+            <div class="metric-card chart-card">
+              <div class="chart-topline"><div class="section-title">Delta position</div></div>
+              <div class="chart-wrap"><canvas id="delta-chart-main"></canvas></div>
+              <div id="delta-value-strip-main" class="value-strip" style="margin-top: 0.5rem;">Delta -- | Hedge --</div>
+            </div>
+            <div class="metric-card chart-card">
+              <div class="chart-topline"><div class="section-title">Hedge quality</div></div>
+              <div class="chart-wrap"><canvas id="hedge-chart-main"></canvas></div>
+            </div>
+          </div>
+          <div id="delta-context" style="margin-top: 1rem; padding: 0.8rem; background: rgba(30, 58, 95, 0.15); border-radius: 10px; color: #d5f3ec; font-size: 0.9rem;">Delta hedge context loading…</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Deeper analysis notes</div>
+        <div id="analysis-insights" class="insight-grid">Loading…</div>
+        <div id="analysis-note" class="analysis-note">Waiting for updated market context…</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-title">Settings</div>
+          <div id="settings-scope" class="settings-scope">Editing Gold settings</div>
+          <div class="grid-3">
+            <div>
+              <label class="small">Technical weight</label><br />
+              <input id="tech-weight" value="0.35" />
+            </div>
+            <div>
+              <label class="small">Macro weight</label><br />
+              <input id="macro-weight" value="0.30" />
+            </div>
+            <div>
+              <label class="small">News weight</label><br />
+              <input id="news-weight" value="0.35" />
+            </div>
+          </div>
+          <div style="margin-top: 0.7rem; max-width: 220px;">
+            <label class="small">Bullish threshold</label><br />
+            <input id="bullish-threshold" value="65" />
+          </div>
+          <div style="margin-top: 0.8rem;">
+            <button onclick="saveSettings()">Save settings</button>
+          </div>
+          <div id="settings-output" class="small" style="margin-top: 0.7rem;"></div>
+        </div>
+        <div class="card">
+          <div class="section-title">Trading journal</div>
+          <div class="journal-row">
+            <div><label class="small">Action</label><br /><input id="journal-action" placeholder="Action" /></div>
+            <div><label class="small">Reason</label><br /><input id="journal-reason" placeholder="Reason" /></div>
+            <div><label class="small">Price</label><br /><input id="journal-price" placeholder="Price" /></div>
+            <button onclick="saveJournalEntry()">Save</button>
+          </div>
+          <div id="journal-output" class="small" style="margin-top: 0.7rem;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="chart-modal" class="modal-backdrop" onclick="closeChartModal(event)">
+      <div class="modal-card" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <div id="modal-title" class="section-title">Chart</div>
+          <div class="modal-close" onclick="closeChartModal()">✕</div>
+        </div>
+        <div id="modal-body" class="chart-wrap"></div>
+        <div id="modal-legend" class="legend-row"></div>
+      </div>
+    </div>
+
+    <script>
+      let signalHistory = [50, 51, 54, 56, 58];
+      let priceHistory = [2280, 2286, 2292, 2288, 2295, 2300, 2304, 2310, 2316, 2320, 2325, 2330];
+      let signalTimestamps = [];
+      let priceTimestamps = [];
+      let currentMetal = 'gold';
+      let chartRange = '1d';
+      let chartView = 'all';
+      let settingsByMetal = {
+        gold: {},
+        silver: {},
+      };
+      let latestAnalysisCards = [];
+      let latestChartState = { technical: 50, macro: 50, news: 50, score: 50, direction: 'neutral', currentPrice: 2330, gammaScore: 50, gammaExposure: 'neutral', deltaPosition: 0.5, hedgeRatio: 0.5, hedgeEffectiveness: 0.7 };
+      let latestTradePlan = null;
+      let latestSignalPlot = [];
+      let latestPricePlot = [];
+      let modalMode = 'chart';
+      let currentInsightIndex = -1;
+      let insightTouchStartX = null;
+
+      function getChartContext(canvasId, minHeight = 220) {
+        const canvas = document.getElementById(canvasId);
+        const parent = canvas.parentElement;
+        const rect = parent.getBoundingClientRect();
+        
+        // Skip rendering if canvas is hidden or has no dimensions
+        if (rect.width === 0 || rect.height === 0) {
+          return null;
+        }
+        
+        const width = Math.max(240, Math.round(rect.width - 8));
+        const inferredHeight = rect.height > 20 ? rect.height - 8 : Math.round(width * 0.68);
+        const height = Math.max(minHeight, inferredHeight);
+        const dpr = window.devicePixelRatio || 1;
+
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+        return { canvas, ctx, width, height };
+      }
+
+      function updateGammaRatingExplanation(gammaScore) {
+        const score = Number(gammaScore || 50);
+        let rating, description;
+
+        if (score >= 80) {
+          rating = 'A+';
+          description = 'Exceptional gamma setup. Dealers are heavily positioned, creating strong tailwinds for price momentum in the current direction.';
+        } else if (score >= 68) {
+          rating = 'A';
+          description = 'Excellent gamma conditions. Strong dealer positioning supporting current market momentum with good flow dynamics.';
+        } else if (score >= 58) {
+          rating = 'B';
+          description = 'Good gamma exposure. Moderate dealer positioning providing reasonable support for market direction.';
+        } else if (score >= 46) {
+          rating = 'C';
+          description = 'Neutral gamma environment. Dealers are roughly balanced with limited directional bias or support.';
+        } else if (score >= 34) {
+          rating = 'D';
+          description = 'Weak gamma conditions. Dealers are positioned against current momentum, creating potential headwinds.';
+        } else {
+          rating = 'F';
+          description = 'Poor gamma setup. Heavy dealer opposition likely limiting upside or creating vulnerability to sharp moves.';
+        }
+
+        const explanationEl = document.getElementById('gamma-rating-explanation');
+        if (explanationEl) {
+          explanationEl.innerHTML = `<strong>Rating ${rating}</strong><br>${description}`;
+        }
+      }
+
+      function renderAllCharts() {
+        const visibleScore = getVisibleSeries(signalHistory, signalTimestamps);
+        const visiblePrice = getVisibleSeries(priceHistory, priceTimestamps);
+        drawPriceChart(visiblePrice.values, visiblePrice.timestamps);
+        drawSignalHistoryChart(visibleScore.values, visibleScore.timestamps);
+        drawComponentChart(latestChartState.technical, latestChartState.macro, latestChartState.news);
+        drawMomentumChart(latestChartState.technical);
+        drawDriverChart(latestChartState.technical, latestChartState.macro, latestChartState.news, latestChartState.score);
+        drawRegimeChart(latestChartState.score, latestChartState.direction);
+        drawSupportChart(latestChartState.currentPrice);
+        drawScenarioChart(latestChartState.score);
+        drawGammaChartMain(latestChartState.gammaScore, latestChartState.gammaExposure);
+        drawGammaDetailChartMain(latestChartState.gammaScore);
+        updateGammaRatingExplanation(latestChartState.gammaScore);
+        drawDeltaChartMain(latestChartState.deltaPosition, latestChartState.hedgeRatio);
+        drawHedgeChartMain(latestChartState.hedgeEffectiveness);
+        updateValueStrips(visibleScore.values, visibleScore.timestamps, visiblePrice.values, visiblePrice.timestamps);
+      }
+
+      function setChartRange(range) {
+        chartRange = ['1d', '1w', '1m'].includes(range) ? range : '1d';
+        document.getElementById('range-1d').classList.toggle('active', chartRange === '1d');
+        document.getElementById('range-1w').classList.toggle('active', chartRange === '1w');
+        document.getElementById('range-1m').classList.toggle('active', chartRange === '1m');
+        renderAllCharts();
+      }
+
+      function setChartView(view) {
+        chartView = ['core', 'levels', 'outlook', 'all'].includes(view) ? view : 'core';
+        document.getElementById('view-core').classList.toggle('active', chartView === 'core');
+        document.getElementById('view-levels').classList.toggle('active', chartView === 'levels');
+        document.getElementById('view-outlook').classList.toggle('active', chartView === 'outlook');
+        document.getElementById('view-all').classList.toggle('active', chartView === 'all');
+
+        document.querySelectorAll('.chart-card').forEach((card) => {
+          const bucket = card.getAttribute('data-view') || 'core';
+          const show = chartView === 'all' || bucket === chartView;
+          card.style.display = show ? '' : 'none';
+        });
+      }
+
+      function getRangePoints() {
+        if (chartRange === '1m') return 90;
+        if (chartRange === '1w') return 36;
+        return 12;
+      }
+
+      function getVisibleSeries(values, timestamps) {
+        const points = getRangePoints();
+        const v = Array.isArray(values) && values.length ? values : [0];
+        const t = Array.isArray(timestamps) && timestamps.length === v.length
+          ? timestamps
+          : v.map(() => new Date().toISOString());
+        return {
+          values: v.slice(-points),
+          timestamps: t.slice(-points),
+        };
+      }
+
+      function syncHistoryTimestamps() {
+        const now = Date.now();
+        signalTimestamps = signalHistory.map((_, index) => new Date(now - (signalHistory.length - index - 1) * 15 * 60 * 1000).toISOString());
+        priceTimestamps = priceHistory.map((_, index) => new Date(now - (priceHistory.length - index - 1) * 15 * 60 * 1000).toISOString());
+      }
+
+      function updateValueStrips(scoreValues = signalHistory, scoreTimes = signalTimestamps, priceValues = priceHistory, priceTimes = priceTimestamps) {
+        const scoreNow = Number(scoreValues[scoreValues.length - 1] ?? 0);
+        const scoreHigh = Math.max(...scoreValues);
+        const scoreLow = Math.min(...scoreValues);
+        const scoreFirst = Number(scoreValues[0] ?? scoreNow);
+        const scoreChangePct = scoreFirst !== 0 ? ((scoreNow - scoreFirst) / Math.abs(scoreFirst)) * 100 : 0;
+        const scoreTs = scoreTimes[scoreTimes.length - 1] ? new Date(scoreTimes[scoreTimes.length - 1]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--';
+        const scoreStrip = document.getElementById('signal-value-strip');
+        if (scoreStrip) {
+          scoreStrip.textContent = `Now ${formatNumber(scoreNow, 1)} (${toPercent(scoreChangePct, 2)}) | High ${formatNumber(scoreHigh, 1)} | Low ${formatNumber(scoreLow, 1)} | Updated ${scoreTs}`;
+        }
+
+        const priceNow = Number(priceValues[priceValues.length - 1] ?? 0);
+        const priceHigh = Math.max(...priceValues);
+        const priceLow = Math.min(...priceValues);
+        const priceFirst = Number(priceValues[0] ?? priceNow);
+        const priceChangePct = priceFirst !== 0 ? ((priceNow - priceFirst) / Math.abs(priceFirst)) * 100 : 0;
+        const priceTs = priceTimes[priceTimes.length - 1] ? new Date(priceTimes[priceTimes.length - 1]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--';
+        const digits = currentMetal === 'silver' ? 2 : 1;
+        const priceStrip = document.getElementById('price-value-strip');
+        if (priceStrip) {
+          priceStrip.textContent = `Now ${formatNumber(priceNow, digits)} (${toPercent(priceChangePct, 2)}) | High ${formatNumber(priceHigh, digits)} | Low ${formatNumber(priceLow, digits)} | Updated ${priceTs}`;
+        }
+
+        // Update gamma value strip (main page)
+        const gammaStripMain = document.getElementById('gamma-value-strip-main');
+        if (gammaStripMain) {
+          gammaStripMain.textContent = `Score ${formatNumber(latestChartState.gammaScore, 0)} | Exposure ${latestChartState.gammaExposure.toUpperCase()}`;
+        }
+
+        // Update delta value strip (main page)
+        const deltaStripMain = document.getElementById('delta-value-strip-main');
+        if (deltaStripMain) {
+          deltaStripMain.textContent = `Delta ${toPercent(latestChartState.deltaPosition, 0)} | Hedge ${toPercent(latestChartState.hedgeRatio, 0)}`;
+        }
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\"/g, '&quot;');
+      }
+
+      function getMetalDisplayName(metal) {
+        return metal === 'silver' ? 'Silver' : 'Gold';
+      }
+
+      async function loadSettingsForMetal(metal) {
+        try {
+          const res = await fetch(`/settings?metal=${encodeURIComponent(metal)}`);
+          const data = await res.json();
+          if (data.settings && typeof data.settings === 'object') {
+            const target = metal === 'silver' ? 'silver' : 'gold';
+            settingsByMetal[target] = data.settings;
+            applySettingsToForm(target);
+          }
+        } catch (e) {
+          console.error('Error loading settings for metal:', e);
+          applySettingsToForm(metal);
+        }
+      }
+
+      function applySettingsToForm(metal) {
+        const target = metal === 'silver' ? 'silver' : 'gold';
+        const settings = settingsByMetal[target] || settingsByMetal.gold;
+        document.getElementById('tech-weight').value = formatNumber(settings.weights?.technical ?? 0.35, 2);
+        document.getElementById('macro-weight').value = formatNumber(settings.weights?.macro ?? 0.30, 2);
+        document.getElementById('news-weight').value = formatNumber(settings.weights?.news ?? 0.35, 2);
+        document.getElementById('bullish-threshold').value = formatNumber(settings.thresholds?.bullish ?? 65, 0);
+      }
+
+      function setMetal(metal) {
+        currentMetal = metal === 'silver' ? 'silver' : 'gold';
+        document.body.setAttribute('data-metal', currentMetal);
+        document.getElementById('tab-gold').classList.toggle('active', currentMetal === 'gold');
+        document.getElementById('tab-silver').classList.toggle('active', currentMetal === 'silver');
+        document.getElementById('tab-gold').setAttribute('aria-selected', String(currentMetal === 'gold'));
+        document.getElementById('tab-silver').setAttribute('aria-selected', String(currentMetal === 'silver'));
+
+        const metalName = getMetalDisplayName(currentMetal);
+        document.getElementById('app-title').textContent = `${metalName} Signal Dashboard`;
+        document.getElementById('app-lead').textContent = `A clearer view of ${metalName.toLowerCase()}'s current technical, macro, and news bias.`;
+        document.getElementById('price-card-title').textContent = `${metalName} price`;
+        document.getElementById('settings-scope').textContent = `Editing ${metalName} settings`;
+        loadSettingsForMetal(currentMetal);
+
+        signalHistory = [50, 51, 54, 56, 58];
+        priceHistory = currentMetal === 'silver'
+          ? [43.8, 44.0, 44.3, 44.1, 44.4, 44.6, 44.8, 45.0, 45.2, 45.1, 45.3, 45.4]
+          : [2280, 2286, 2292, 2288, 2295, 2300, 2304, 2310, 2316, 2320, 2325, 2330];
+        syncHistoryTimestamps();
+        latestChartState.currentPrice = priceHistory[priceHistory.length - 1];
+        setChartView(chartView);
+        renderAllCharts();
+        loadSignal();
+      }
+
+      function openChartModal(title, canvasId) {
+        modalMode = 'chart';
+        currentInsightIndex = -1;
+        document.getElementById('modal-title').textContent = title;
+        const modalBody = document.getElementById('modal-body');
+        const modalLegend = document.getElementById('modal-legend');
+        modalLegend.style.display = 'flex';
+        modalBody.innerHTML = `<canvas id="modal-canvas" width="900" height="520"></canvas>`;
+        const sourceCanvas = document.getElementById(canvasId);
+        const targetCanvas = document.getElementById('modal-canvas');
+        const ctx = targetCanvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(sourceCanvas, 0, 0, targetCanvas.width, targetCanvas.height);
+
+        const legends = {
+          'price-chart': [`${getMetalDisplayName(currentMetal)} price`, 'Price trend'],
+          'signal-chart': ['Signal score', 'Bullish / bearish trend'],
+          'component-chart': ['Technical', 'Macro', 'News'],
+          'momentum-chart': ['Momentum', 'RSI-like reading'],
+          'driver-chart': ['Technical', 'Macro', 'News', 'Composite'],
+          'regime-chart': ['Bullish', 'Neutral', 'Bearish'],
+          'support-chart': ['Support', 'Resistance', 'Current price'],
+          'scenario-chart': ['Bull case', 'Base case', 'Bear case'],
+        };
+        modalLegend.innerHTML = (legends[canvasId] || ['Current view']).map((item) => `
+          <div class="legend-item"><span class="legend-swatch" style="background:${item.includes('Technical') ? '#2dd4bf' : item.includes('Macro') ? '#3b82f6' : item.includes('News') ? '#f59e0b' : item.includes('Signal') ? '#2dd4bf' : item.includes('Price') ? '#fbbf24' : '#f4f7fb'}"></span>${escapeHtml(item)}</div>
+        `).join('');
+
+        document.getElementById('chart-modal').classList.add('active');
+      }
+
+      function openInsightModal(index) {
+        const item = latestAnalysisCards[index];
+        if (!item) return;
+
+        modalMode = 'insight';
+        currentInsightIndex = index;
+
+        document.getElementById('modal-title').textContent = item.title;
+        const modalBody = document.getElementById('modal-body');
+        const modalLegend = document.getElementById('modal-legend');
+        modalLegend.style.display = 'none';
+        modalBody.innerHTML = `
+          <div>
+            <div class="insight-modal-value">${escapeHtml(item.value)}</div>
+            <div class="insight-modal-note">${escapeHtml(item.note)}</div>
+            <div class="insight-modal-help">${escapeHtml(item.help || 'No additional detail available.')}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem; gap:0.6rem;">
+              <button class="secondary" onclick="stepInsight(-1)">Previous</button>
+              <div class="small">${index + 1} / ${latestAnalysisCards.length}</div>
+              <button class="secondary" onclick="stepInsight(1)">Next</button>
+            </div>
+          </div>
+        `;
+        document.getElementById('chart-modal').classList.add('active');
+      }
+
+      function stepInsight(step) {
+        if (!latestAnalysisCards.length) return;
+        const nextIndex = (currentInsightIndex + step + latestAnalysisCards.length) % latestAnalysisCards.length;
+        openInsightModal(nextIndex);
+      }
+
+      function closeChartModal(event) {
+        if (event && event.target.id !== 'chart-modal') return;
+        document.getElementById('chart-modal').classList.remove('active');
+        modalMode = 'chart';
+        currentInsightIndex = -1;
+      }
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          closeChartModal();
+          return;
+        }
+
+        const modalActive = document.getElementById('chart-modal').classList.contains('active');
+        if (!modalActive || modalMode !== 'insight') return;
+
+        if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          stepInsight(1);
+        } else if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          stepInsight(-1);
+        }
+      });
+
+      document.getElementById('modal-body').addEventListener('touchstart', (event) => {
+        if (modalMode !== 'insight') return;
+        insightTouchStartX = event.changedTouches[0].clientX;
+      }, { passive: true });
+
+      document.getElementById('modal-body').addEventListener('touchend', (event) => {
+        if (modalMode !== 'insight' || insightTouchStartX === null) return;
+        const delta = event.changedTouches[0].clientX - insightTouchStartX;
+        if (Math.abs(delta) > 40) {
+          stepInsight(delta < 0 ? 1 : -1);
+        }
+        insightTouchStartX = null;
+      }, { passive: true });
+
+      function getDirectionClass(direction) {
+        if (direction === 'bullish') return 'bullish';
+        if (direction === 'bearish') return 'bearish';
+        return 'neutral';
+      }
+
+      function formatNumber(value, digits = 2) {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return '--';
+        return Number(value).toFixed(digits);
+      }
+
+      function toPercent(value, digits = 2) {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return '--';
+        return `${Number(value).toFixed(digits)}%`;
+      }
+
+      function mean(values) {
+        if (!values.length) return 0;
+        return values.reduce((sum, value) => sum + value, 0) / values.length;
+      }
+
+      function stdDev(values) {
+        if (values.length < 2) return 0;
+        const avg = mean(values);
+        const variance = mean(values.map((value) => Math.pow(value - avg, 2)));
+        return Math.sqrt(variance);
+      }
+
+      function percentile(values, ratio) {
+        if (!values.length) return 0;
+        const sorted = [...values].sort((a, b) => a - b);
+        const index = Math.max(0, Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * ratio)));
+        return sorted[index];
+      }
+
+      function buildSummaryBlurb(data) {
+        const score = Number(data.composite_score ?? 50);
+        const direction = data.direction || 'neutral';
+        if (direction === 'bullish') return `Momentum is favoring upside, with ${score.toFixed(1)} / 100 support from the current mix.`;
+        if (direction === 'bearish') return `The setup is leaning lower, and the current market context is weighing against gold.`;
+        return `The signal is balanced and should be watched closely until price and context align more clearly.`;
+      }
+
+      function buildClientTradePlan(data, currentPrice, history) {
+        const values = (history || []).filter((v) => !Number.isNaN(Number(v))).map(Number);
+        const series = values.length ? values : [Number(currentPrice || 0)];
+        const now = Number(currentPrice || series[series.length - 1] || 0);
+        const direction = (data?.direction || 'neutral').toLowerCase();
+        const support = percentile(series, 0.25);
+        const resistance = percentile(series, 0.75);
+        const deltas = [];
+        for (let i = 1; i < series.length; i += 1) {
+          deltas.push(Math.abs(series[i] - series[i - 1]));
+        }
+        const atrProxy = deltas.length ? mean(deltas) : Math.max(now * 0.004, currentMetal === 'silver' ? 0.05 : 1.5);
+        const minBuffer = currentMetal === 'silver' ? 0.05 : 1.5;
+        const stopBuffer = Math.max(atrProxy * 0.8, minBuffer);
+
+        let entryMin;
+        let entryMax;
+        let entryMid;
+        let stopPrice;
+        let riskPerUnit;
+        let tp1;
+        let tp2;
+        let tp3;
+
+        if (direction === 'bearish') {
+          entryMin = Math.min(now, resistance || now);
+          entryMax = Math.max(now, resistance || now);
+          entryMid = (entryMin + entryMax) / 2;
+          stopPrice = entryMax + stopBuffer;
+          riskPerUnit = Math.max(stopPrice - entryMid, minBuffer);
+          tp1 = entryMid - riskPerUnit * 1.2;
+          tp2 = entryMid - riskPerUnit * 2.0;
+          tp3 = entryMid - riskPerUnit * 3.0;
+        } else {
+          entryMin = Math.min(now, support || now);
+          entryMax = Math.max(now, support || now);
+          entryMid = (entryMin + entryMax) / 2;
+          stopPrice = Math.max(0, entryMin - stopBuffer);
+          riskPerUnit = Math.max(entryMid - stopPrice, minBuffer);
+          tp1 = entryMid + riskPerUnit * 1.2;
+          tp2 = entryMid + riskPerUnit * 2.0;
+          tp3 = entryMid + riskPerUnit * 3.0;
+        }
+
+        const rr = (target) => {
+          const reward = Math.abs(target - entryMid);
+          return riskPerUnit > 0 ? reward / riskPerUnit : 0;
+        };
+
+        return {
+          direction,
+          entry_min: entryMin,
+          entry_max: entryMax,
+          entry_mid: entryMid,
+          stop_price: stopPrice,
+          tp1,
+          tp2,
+          tp3,
+          risk_per_unit: riskPerUnit,
+          rr_tp1: rr(tp1),
+          rr_tp2: rr(tp2),
+          rr_tp3: rr(tp3),
+          atr_proxy: atrProxy,
+          support,
+          resistance,
+        };
+      }
+
+      function buildClientSizing(tradePlan, accountSize = 10000, riskPct = 1.0) {
+        const riskCapital = Math.max(0, Number(accountSize || 0)) * Math.max(0, Number(riskPct || 0)) / 100;
+        const riskPerUnit = Math.max(0.000001, Number(tradePlan?.risk_per_unit || 0));
+        const units = riskCapital / riskPerUnit;
+        return {
+          account_size: Number(accountSize || 0),
+          risk_pct: Number(riskPct || 0),
+          risk_capital: riskCapital,
+          risk_per_unit: tradePlan?.risk_per_unit || 0,
+          units,
+        };
+      }
+
+      function calculatePositionSize() {
+        if (!latestTradePlan || !latestTradePlan.risk_per_unit) {
+          document.getElementById('position-sizing-output').textContent = 'No trade plan available yet.';
+          return;
+        }
+
+        const accountSize = Number(document.getElementById('account-size').value || 0);
+        const riskPct = Number(document.getElementById('risk-pct').value || 0);
+        const riskCapital = Math.max(0, accountSize) * Math.max(0, riskPct) / 100;
+        const units = riskCapital / Math.max(0.000001, Number(latestTradePlan.risk_per_unit));
+        const rr2 = Number(latestTradePlan.rr_tp2 || 0);
+        const expectedAtTp2 = riskCapital * rr2;
+
+        document.getElementById('position-sizing-output').textContent = `Risk capital ${formatNumber(riskCapital, 2)} | Suggested units ${formatNumber(units, 2)} | Expected gain at TP2 ${formatNumber(expectedAtTp2, 2)}`;
+      }
+
+      function renderTradePlan(tradePlan, sizing) {
+        if (!tradePlan || typeof tradePlan !== 'object') {
+          document.getElementById('trade-plan-output').innerHTML = '<div class="small">No trade plan available.</div>';
+          document.getElementById('position-sizing-output').textContent = 'No trade plan available yet.';
+          latestTradePlan = null;
+          return;
+        }
+
+        latestTradePlan = tradePlan;
+        const directionText = (tradePlan.direction || 'neutral').toUpperCase();
+        document.getElementById('trade-plan-output').innerHTML = `
+          <div class="trade-cell"><div class="trade-label">Bias</div><div class="trade-value">${escapeHtml(directionText)}</div><div class="trade-note">Entry ${formatNumber(tradePlan.entry_min, 2)} - ${formatNumber(tradePlan.entry_max, 2)}</div></div>
+          <div class="trade-cell"><div class="trade-label">Stop</div><div class="trade-value">${formatNumber(tradePlan.stop_price, 2)}</div><div class="trade-note">Risk / unit ${formatNumber(tradePlan.risk_per_unit, 4)}</div></div>
+          <div class="trade-cell"><div class="trade-label">TP1 / TP2</div><div class="trade-value">${formatNumber(tradePlan.tp1, 2)} / ${formatNumber(tradePlan.tp2, 2)}</div><div class="trade-note">RR ${formatNumber(tradePlan.rr_tp1, 2)} / ${formatNumber(tradePlan.rr_tp2, 2)}</div></div>
+          <div class="trade-cell"><div class="trade-label">TP3</div><div class="trade-value">${formatNumber(tradePlan.tp3, 2)}</div><div class="trade-note">RR ${formatNumber(tradePlan.rr_tp3, 2)} | ATR ${formatNumber(tradePlan.atr_proxy, 3)}</div></div>
+        `;
+
+        if (sizing && typeof sizing === 'object') {
+          document.getElementById('account-size').value = formatNumber(sizing.account_size, 2);
+          document.getElementById('risk-pct').value = formatNumber(sizing.risk_pct, 2);
+        }
+        calculatePositionSize();
+      }
+
+      function buildAnalysisInsightCards(data, currentPrice, history) {
+        const technical = Number(data.technical_score ?? 50);
+        const macro = Number(data.macro_score ?? 50);
+        const newsScore = Number(data.news_score ?? 50);
+        const prevClose = Number(data.technical_detail?.prev_close ?? currentPrice);
+        const dayOpen = Number(data.technical_detail?.open ?? currentPrice);
+        const dayHigh = Number(data.technical_detail?.high ?? currentPrice);
+        const dayLow = Number(data.technical_detail?.low ?? currentPrice);
+        const priceMovePct = prevClose ? ((currentPrice - prevClose) / prevClose) * 100 : 0;
+        const dayRangePct = dayOpen ? ((dayHigh - dayLow) / dayOpen) * 100 : 0;
+        const volatilityPct = currentPrice ? (stdDev(history) / currentPrice) * 100 : 0;
+        const support = percentile(history, 0.25);
+        const resistance = percentile(history, 0.75);
+        const midpoint = mean([support, resistance]);
+        const distanceToCeiling = resistance ? ((resistance - currentPrice) / resistance) * 100 : 0;
+        const driverSpread = Math.max(technical, macro, newsScore) - Math.min(technical, macro, newsScore);
+        const macroPositive = [data.market_context?.yield_falling, data.market_context?.dollar_weaker, data.market_context?.inflation_rising, data.market_context?.risk_off].filter(Boolean).length;
+        const gammaRating = data.gamma_signal?.rating || data.gamma_exposure_rating || data.market_context?.gamma_rating || 'C';
+        const gammaScore = Number(data.gamma_signal?.score ?? 50);
+        const gammaExposure = (data.gamma_signal?.exposure || data.market_context?.gamma_exposure || 'neutral').toUpperCase();
+        const gammaRegime = data.gamma_signal?.regime || data.market_context?.gamma_regime || 'balanced';
+
+        const cards = [
+          {
+            title: 'Session move',
+            value: toPercent(priceMovePct, 2),
+            note: `Range ${toPercent(dayRangePct, 2)} from open ${formatNumber(dayOpen, 1)}`,
+            help: 'Computed as ((current price - previous close) / previous close) * 100, with day range based on high/low versus open.',
+          },
+          {
+            title: 'Volatility regime',
+            value: volatilityPct > 1.2 ? 'Elevated' : volatilityPct > 0.7 ? 'Moderate' : 'Calm',
+            note: `${toPercent(volatilityPct, 2)} realized over recent prints`,
+            help: 'Estimated using standard deviation of recent prices divided by current price, shown as a percent volatility proxy.',
+          },
+          {
+            title: 'Price location',
+            value: currentPrice >= midpoint ? 'Upper zone' : 'Lower zone',
+            note: `~${toPercent(distanceToCeiling, 2)} to local resistance`,
+            help: 'Support and resistance are taken from the 25th and 75th percentiles of recent prices to show where price sits in its local range.',
+          },
+          {
+            title: 'Driver alignment',
+            value: driverSpread <= 8 ? 'Tight' : driverSpread <= 18 ? 'Mixed' : 'Divergent',
+            note: `Spread ${formatNumber(driverSpread, 1)} pts · Macro positives ${macroPositive}/4`,
+            help: 'Driver spread is max minus min across technical, macro, and news scores. Lower spread means stronger agreement across models.',
+          },
+          {
+            title: 'Gamma exposure rating',
+            value: gammaRating,
+            note: `${gammaExposure} · ${gammaRegime} · Score ${formatNumber(gammaScore, 1)}`,
+            help: 'Letter rating derived from gamma score bands to summarize whether dealer hedging likely dampens or amplifies moves.',
+          },
+        ];
+
+        const note = data.direction === 'bullish'
+          ? `Bullish bias is strongest when price holds above ${formatNumber(support, 1)} while volatility remains controlled.`
+          : data.direction === 'bearish'
+            ? `Bearish pressure deepens if price loses ${formatNumber(support, 1)} with macro positives fading.`
+            : `Neutral regime: watch breakouts beyond ${formatNumber(resistance, 1)} or failures below ${formatNumber(support, 1)}.`;
+
+        return { cards, note };
+      }
+
+      function animateScore(targetScore, targetDirection, targetConviction, targetSource) {
+        const scoreEl = document.getElementById('summary-score');
+        const directionEl = document.getElementById('summary-direction');
+        const confidenceLabel = document.getElementById('confidence-label');
+        const startScore = Number(scoreEl.dataset.score || 50);
+        const startTime = performance.now();
+        const duration = 700;
+
+        function tick(now) {
+          const progress = Math.min(1, (now - startTime) / duration);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const currentScore = startScore + (targetScore - startScore) * eased;
+          scoreEl.innerHTML = `${currentScore.toFixed(1)} <span class="score-unit">/ 100</span>`;
+          scoreEl.dataset.score = currentScore.toFixed(1);
+          directionEl.textContent = targetDirection.toUpperCase();
+          directionEl.className = `tag ${getDirectionClass(targetDirection)}`;
+          const confidence = Math.min(100, Math.max(10, Math.abs(currentScore - 50) * 2));
+          const readiness = Math.min(100, Math.max(20, Math.round(confidence * 0.9 + (targetDirection === 'bullish' ? 6 : targetDirection === 'bearish' ? 2 : 0))));
+          confidenceLabel.textContent = `Confidence ${confidence.toFixed(0)}% · ${targetConviction}`;
+          document.getElementById('readiness-box').textContent = `Trade readiness: ${readiness}%`;
+          drawGauge(confidence);
+          if (progress < 1) requestAnimationFrame(tick);
+          else {
+            scoreEl.innerHTML = `${targetScore.toFixed(1)} <span class="score-unit">/ 100</span>`;
+            scoreEl.dataset.score = targetScore.toFixed(1);
+            document.getElementById('summary-time').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+            document.getElementById('summary-source').textContent = targetSource || 'Demo';
+          }
+        }
+
+        requestAnimationFrame(tick);
+      }
+
+      function bindInsightToggles() {
+        const cards = Array.from(document.querySelectorAll('.insight-card'));
+        cards.forEach((card) => {
+          card.addEventListener('click', () => {
+            const index = Number(card.dataset.index || -1);
+            openInsightModal(index);
+          });
+        });
+      }
+
+      function renderEconomicCalendar(calendar) {
+        const container = document.getElementById('calendar-output');
+        const fallback = {
+          risk_level: 'medium',
+          risk_score: 50,
+          events: [],
+        };
+        const model = calendar && typeof calendar === 'object' ? calendar : fallback;
+        const riskClass = (model.risk_level || 'medium').toLowerCase();
+        const events = Array.isArray(model.events) ? model.events.slice(0, 4) : [];
+
+        const riskText = riskClass === 'high'
+          ? 'High event risk: consider reduced size and wider invalidation room.'
+          : riskClass === 'low'
+            ? 'Low event risk: execution risk from macro headlines is currently limited.'
+            : 'Moderate event risk: prioritize cleaner entries around release windows.';
+
+        container.innerHTML = `
+          <div class="calendar-risk">
+            <div class="small">Macro event risk score</div>
+            <div style="font-size:1.45rem; font-weight:700; margin-top:0.25rem;">${formatNumber(model.risk_score, 1)} / 100</div>
+            <div style="margin-top:0.35rem;"><span class="calendar-badge ${escapeHtml(riskClass)}">${escapeHtml((model.risk_level || 'medium').toUpperCase())}</span></div>
+            <div class="small" style="margin-top:0.5rem;">${escapeHtml(riskText)}</div>
+          </div>
+          <div class="calendar-events">
+            <div class="small" style="margin-bottom:0.2rem;">Upcoming events</div>
+            ${events.map((event) => `
+              <div class="calendar-row">
+                <div>
+                  <div style="font-weight:700;">${escapeHtml(event.name || 'Economic event')}</div>
+                  <div class="small">In ${formatNumber(event.hours_to_event, 1)}h · ${escapeHtml(event.why_it_matters || 'Market-moving event')}</div>
+                </div>
+                <div><span class="calendar-badge ${(event.importance || 'medium').toLowerCase()}">${escapeHtml((event.importance || 'medium').toUpperCase())}</span></div>
+              </div>
+            `).join('') || '<div class="small">No events currently queued.</div>'}
+          </div>
+        `;
+      }
+
+      async function loadSignal() {
+        const output = document.getElementById('signal-output');
+        output.innerHTML = 'Loading…';
+        const res = await fetch(`/signal?metal=${encodeURIComponent(currentMetal)}`);
+        const data = await res.json();
+        const alertBox = document.getElementById('alert-output');
+        const suggestionsBox = document.getElementById('suggestions-output');
+        const payloadMetal = data.metal === 'silver' ? 'silver' : 'gold';
+        if (payloadMetal !== currentMetal) {
+          currentMetal = payloadMetal;
+        }
+
+        const score = Number(data.composite_score ?? 50);
+        const direction = data.direction || 'neutral';
+        const conviction = data.conviction || 'medium';
+
+        signalHistory.push(score);
+        signalTimestamps.push(new Date().toISOString());
+        if (signalHistory.length > 120) signalHistory.shift();
+        if (signalTimestamps.length > 120) signalTimestamps.shift();
+
+        const incomingHistory = Array.isArray(data.price_history) ? data.price_history.filter((value) => value !== null && value !== undefined && !Number.isNaN(Number(value))).map(Number) : [];
+        if (incomingHistory.length) {
+          priceHistory = incomingHistory.slice(-120);
+          const now = Date.now();
+          priceTimestamps = priceHistory.map((_, index) => new Date(now - (priceHistory.length - index - 1) * 15 * 60 * 1000).toISOString());
+        }
+
+        const currentPrice = Number(data.current_price || priceHistory[priceHistory.length - 1] || 2330);
+        if (!Number.isNaN(currentPrice)) {
+          priceHistory.push(currentPrice);
+          priceTimestamps.push(new Date().toISOString());
+          if (priceHistory.length > 120) priceHistory.shift();
+          if (priceTimestamps.length > 120) priceTimestamps.shift();
+        }
+
+        animateScore(score, direction, conviction, `${getMetalDisplayName(currentMetal)} · ${data.source || 'Demo'}`);
+        document.getElementById('summary-blurb').textContent = buildSummaryBlurb(data);
+        const fallbackPlan = buildClientTradePlan(data, currentPrice, priceHistory);
+        const tradePlan = (data.trade_plan && typeof data.trade_plan === 'object') ? data.trade_plan : fallbackPlan;
+        const sizing = (data.position_sizing && typeof data.position_sizing === 'object')
+          ? data.position_sizing
+          : buildClientSizing(tradePlan, Number(document.getElementById('account-size')?.value || 10000), Number(document.getElementById('risk-pct')?.value || 1));
+        renderTradePlan(tradePlan, sizing);
+
+        alertBox.innerHTML = data.alert ? `<div class="alert-box">${escapeHtml(data.alert)}</div>` : '';
+        suggestionsBox.innerHTML = (data.suggestions || []).map((item) => `
+          <div class="list-item">
+            <div class="list-title">${escapeHtml(item.title)}</div>
+            <div class="list-description">${escapeHtml(item.detail)}</div>
+            <div class="priority ${escapeHtml(item.priority || 'medium')}">${escapeHtml((item.priority || 'medium').toUpperCase())}</div>
+          </div>
+        `).join('');
+
+        const pulseItems = [
+          {
+            title: 'Yield',
+            value: data.market_context?.yield_falling ? 'Falling' : 'Stable',
+            tone: data.market_context?.yield_falling ? 'positive' : 'neutral',
+            detail: `Real yield ${formatNumber(data.macro_detail?.real_yield_change, 2)}`,
+          },
+          {
+            title: 'Dollar',
+            value: data.market_context?.dollar_weaker ? 'Weaker' : 'Steady',
+            tone: data.market_context?.dollar_weaker ? 'positive' : 'neutral',
+            detail: `Δ ${formatNumber(data.macro_detail?.dollar_index_pct_change, 2)}%`,
+          },
+          {
+            title: 'Inflation',
+            value: data.market_context?.inflation_rising ? 'Rising' : 'Stable',
+            tone: data.market_context?.inflation_rising ? 'positive' : 'neutral',
+            detail: `CPI ${formatNumber(data.macro_detail?.cpi_yoy_pct, 2)}%`,
+          },
+          {
+            title: 'Risk-off',
+            value: data.market_context?.risk_off ? 'Active' : 'Muted',
+            tone: data.market_context?.risk_off ? 'positive' : 'neutral',
+            detail: 'Safe-haven pressure',
+          },
+          {
+            title: 'Gamma',
+            value: (data.gamma_signal?.exposure || 'neutral').toUpperCase(),
+            tone: data.gamma_signal?.exposure === 'negative' ? 'negative' : data.gamma_signal?.exposure === 'positive' ? 'positive' : 'neutral',
+            detail: `Rating ${(data.gamma_signal?.rating || data.gamma_exposure_rating || data.market_context?.gamma_rating || 'C')} · Regime ${data.gamma_signal?.regime || 'balanced'} · Score ${formatNumber(data.gamma_signal?.score, 1)}`,
+          },
+          {
+            title: 'Resistance',
+            value: (data.resistance_signal?.state || 'inside_range').replace('_', ' '),
+            tone: data.resistance_signal?.state === 'far_below' ? 'positive' : data.resistance_signal?.state === 'at_ceiling' ? 'negative' : 'neutral',
+            detail: `${formatNumber(data.resistance_signal?.distance_to_resistance_pct, 2)}% to ${formatNumber(data.resistance_signal?.resistance, currentMetal === 'silver' ? 2 : 1)}`,
+          },
+        ];
+
+        document.getElementById('market-pulse-output').innerHTML = pulseItems.map((item) => `
+          <div class="pulse-card">
+            <div class="pulse-title">${escapeHtml(item.title)}</div>
+            <div class="pulse-value">${escapeHtml(item.value)}</div>
+            <div class="small">${escapeHtml(item.detail)}</div>
+            <div class="pulse-badge ${escapeHtml(item.tone)}">${escapeHtml(item.tone === 'positive' ? 'supportive' : 'watch')}</div>
+          </div>
+        `).join('');
+
+        const metrics = [
+          { label: 'Technical', value: formatNumber(data.technical_score), detail: `${getMetalDisplayName(currentMetal)} ${formatNumber(data.current_price, currentMetal === 'silver' ? 2 : 0)}` },
+          { label: 'Macro', value: formatNumber(data.macro_score), detail: `Yield ${formatNumber(data.macro_detail?.real_yield_change, 2)}` },
+          { label: 'News', value: formatNumber(data.news_score), detail: `${(data.top_events || []).length} recent themes` },
+        ];
+
+        output.innerHTML = `
+          <div class="grid-3">
+            ${metrics.map((metric) => `
+              <div class="metric-card">
+                <div class="metric-label">${escapeHtml(metric.label)}</div>
+                <div class="metric-value">${metric.value}</div>
+                <div class="metric-detail">${escapeHtml(metric.detail)}</div>
+              </div>
+            `).join('')}
+          </div>
+          <div style="margin-top: 0.8rem;">
+            <div class="section-title">Market context</div>
+            <ul class="context-list">
+              <li>Volatility: ${data.market_context?.volatility_up ? 'up' : 'steady'}</li>
+              <li>Yield trend: ${data.market_context?.yield_falling ? 'falling' : 'stable'}</li>
+              <li>Dollar trend: ${data.market_context?.dollar_weaker ? 'weaker' : 'steady'}</li>
+              <li>Inflation backdrop: ${data.market_context?.inflation_rising ? 'rising' : 'stable'}</li>
+              <li>Dealer gamma: ${escapeHtml((data.gamma_signal?.exposure || 'neutral').toUpperCase())} (${escapeHtml(data.gamma_signal?.regime || 'balanced')})</li>
+              <li>Resistance: ${escapeHtml((data.resistance_signal?.state || 'inside_range').replace('_', ' '))} | ${formatNumber(data.resistance_signal?.distance_to_resistance_pct, 2)}% to ceiling</li>
+            </ul>
+          </div>
+          <div style="margin-top: 0.8rem;">
+            <div class="section-title">Recent events</div>
+            <ul class="context-list">
+              ${(data.top_events || []).slice(0, 3).map((event) => `<li>${escapeHtml(event.headline || event.impact || 'Signal event')}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+
+        latestChartState = {
+          technical: Number(data.technical_score || 50),
+          macro: Number(data.macro_score || 50),
+          news: Number(data.news_score || 50),
+          score,
+          direction,
+          currentPrice,
+          gammaScore: Number(data.gamma_signal?.score || 50),
+          gammaExposure: data.gamma_signal?.exposure || 'neutral',
+          deltaPosition: Number(data.gamma_signal?.range_position || 50) / 100,
+          hedgeRatio: 0.5 + (Number(data.macro_score || 50) - 50) / 200,
+          hedgeEffectiveness: Math.max(0.5, Math.min(1.0, (Number(data.technical_score || 50) + Number(data.macro_score || 50)) / 200)),
+        };
+        renderAllCharts();
+
+        const analysis = buildAnalysisInsightCards(data, currentPrice, priceHistory);
+        latestAnalysisCards = analysis.cards;
+        document.getElementById('analysis-insights').innerHTML = analysis.cards.map((item, index) => `
+          <div class="insight-card" data-index="${index}" title="Open details">
+            <div class="insight-title">${escapeHtml(item.title)}</div>
+            <div class="insight-value">${escapeHtml(item.value)}</div>
+            <div class="insight-note">${escapeHtml(item.note)}</div>
+            <div class="insight-hint">Tap for formula details</div>
+          </div>
+        `).join('');
+        bindInsightToggles();
+        document.getElementById('analysis-note').textContent = analysis.note;
+
+        // Update gamma context
+        const gammaContext = document.getElementById('gamma-context');
+        if (gammaContext) {
+          const gammaExposure = data.gamma_signal?.exposure || 'neutral';
+          const gammaRegime = data.gamma_signal?.regime || 'balanced';
+          const gammaNote = data.gamma_signal?.note || 'Gamma backdrop looks balanced.';
+          gammaContext.innerHTML = `
+            <strong>${escapeHtml(gammaExposure.toUpperCase())} exposure</strong> (${escapeHtml(gammaRegime)})<br>
+            <small>${escapeHtml(gammaNote)}</small>
+          `;
+        }
+
+        // Update delta context
+        const deltaContext = document.getElementById('delta-context');
+        if (deltaContext) {
+          const rangePosition = Number(data.gamma_signal?.range_position || 50);
+          const hedgeRatioMain = 0.5 + (Number(data.macro_score || 50) - 50) / 200;
+          const hedgeEffectMain = Math.max(0.5, Math.min(1.0, (Number(data.technical_score || 50) + Number(data.macro_score || 50)) / 200));
+          deltaContext.innerHTML = `
+            <strong>Position:</strong> ${rangePosition.toFixed(0)}% of range<br>
+            <strong>Hedge ratio:</strong> ${(hedgeRatioMain * 100).toFixed(0)}%<br>
+            <strong>Effectiveness:</strong> ${(hedgeEffectMain * 100).toFixed(0)}%
+          `;
+        }
+
+        // Render new advanced features
+        renderConfluenceScore(data.confluence);
+        renderSignalMomentum(data.momentum);
+        renderDivergences(data.divergences);
+        renderMarketSession(data.market_session);
+        renderEconomicEventsList(data.economic_events);
+        await renderCorrelation();
+      }
+
+      function renderConfluenceScore(confluence) {
+        const output = document.getElementById('confluence-output');
+        if (!confluence) {
+          output.innerHTML = 'Unable to calculate confluence.';
+          return;
+        }
+        const bullish = confluence.bullish_signals || 0;
+        const bearish = confluence.bearish_signals || 0;
+        const neutral = confluence.neutral_signals || 0;
+        const confluenceVal = confluence.confluence || 0;
+        
+        let confluenceText = '';
+        if (confluenceVal > 0) {
+          confluenceText = `${bullish}/3 signals bullish ✓`;
+        } else if (confluenceVal < 0) {
+          confluenceText = `${bearish}/3 signals bearish ✗`;
+        } else {
+          confluenceText = `Mixed signals - no clear agreement`;
+        }
+        
+        output.innerHTML = `
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8rem; margin-bottom: 0.8rem;">
+            <div style="text-align: center; padding: 0.8rem; background: rgba(34, 197, 94, 0.1); border-radius: 0.5rem;">
+              <div style="font-size: 1.5rem; font-weight: bold; color: #22c55e;">${bullish}</div>
+              <div style="font-size: 0.85rem; color: var(--muted);">Bullish</div>
+            </div>
+            <div style="text-align: center; padding: 0.8rem; background: rgba(248, 113, 113, 0.1); border-radius: 0.5rem;">
+              <div style="font-size: 1.5rem; font-weight: bold; color: #f87171;">${bearish}</div>
+              <div style="font-size: 0.85rem; color: var(--muted);">Bearish</div>
+            </div>
+            <div style="text-align: center; padding: 0.8rem; background: rgba(251, 191, 36, 0.1); border-radius: 0.5rem;">
+              <div style="font-size: 1.5rem; font-weight: bold; color: #fbbf24;">${neutral}</div>
+              <div style="font-size: 0.85rem; color: var(--muted);">Neutral</div>
+            </div>
+          </div>
+          <div style="padding: 0.8rem; background: var(--panel); border-radius: 0.5rem; border-left: 3px solid ${confluenceVal > 0 ? '#22c55e' : confluenceVal < 0 ? '#f87171' : '#fbbf24'};">
+            <strong>${confluenceText}</strong>
+            <br><small style="color: var(--muted);">Higher confluence = higher conviction trade setup</small>
+          </div>
+        `;
+      }
+
+      function renderSignalMomentum(momentum) {
+        const output = document.getElementById('momentum-output');
+        if (!momentum) {
+          output.innerHTML = 'Unable to calculate momentum.';
+          return;
+        }
+        
+        const momentumType = momentum.momentum || 'unknown';
+        const trend = momentum.trend || 0;
+        const direction = momentum.direction || 'flat';
+        
+        let momentumIcon = '➡️';
+        let momentumColor = '#fbbf24';
+        if (momentumType === 'strengthening') {
+          momentumIcon = '📈';
+          momentumColor = '#22c55e';
+        } else if (momentumType === 'weakening') {
+          momentumIcon = '📉';
+          momentumColor = '#f87171';
+        }
+        
+        output.innerHTML = `
+          <div style="padding: 0.8rem; background: var(--panel); border-radius: 0.5rem; border-left: 3px solid ${momentumColor};">
+            <div style="font-size: 1.2rem; margin-bottom: 0.4rem;">${momentumIcon} ${momentumType.charAt(0).toUpperCase() + momentumType.slice(1)}</div>
+            <div style="margin: 0.4rem 0; color: var(--muted);">
+              Trend: <strong>${direction === 'up' ? '↑' : direction === 'down' ? '↓' : '→'} ${trend > 0 ? '+' : ''}${trend.toFixed(2)}</strong>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--muted); margin-top: 0.6rem;">
+              ${momentumType === 'strengthening' ? 'Signal is gaining strength - good entry momentum' : 
+                momentumType === 'weakening' ? 'Signal is losing strength - consider caution' :
+                'Signal is stable - consistent backdrop'}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderDivergences(divergences) {
+        const card = document.getElementById('divergence-card');
+        const output = document.getElementById('divergence-output');
+        
+        if (!divergences || !divergences.has_divergence) {
+          card.style.display = 'none';
+          return;
+        }
+        
+        card.style.display = 'block';
+        const divList = (divergences.divergences || []).map(d => {
+          const labels = {
+            'technical_bullish_vs_macro_bearish': 'Technical says UP but Macro says DOWN',
+            'macro_bullish_vs_technical_bearish': 'Macro says UP but Technical says DOWN',
+            'news_bullish_vs_others': 'News is optimistic but others disagree',
+            'news_bearish_vs_others': 'News is pessimistic but others disagree'
+          };
+          return labels[d] || d;
+        });
+        
+        output.innerHTML = `
+          <div style="padding: 0.8rem; background: rgba(248, 113, 113, 0.1); border-left: 3px solid #f87171; border-radius: 0.5rem;">
+            <strong style="color: #f87171;">Caution: ${divergences.caution_level.toUpperCase()} caution level</strong>
+            <ul style="margin: 0.6rem 0 0 1.2rem; color: var(--muted);">
+              ${divList.map(d => `<li>${d}</li>`).join('')}
+            </ul>
+            <div style="font-size: 0.85rem; margin-top: 0.6rem; color: var(--muted);">
+              When signals disagree, reduce position size or wait for alignment.
+            </div>
+          </div>
+        `;
+      }
+
+      function renderMarketSession(session) {
+        const output = document.getElementById('market-session-output');
+        if (!session) {
+          output.innerHTML = 'Unable to determine market session.';
+          return;
+        }
+        
+        const sessionName = session.current_session || 'unknown';
+        const markets = (session.active_markets || []).join(', ') || 'None';
+        const volume = session.volume_expected || 'low';
+        
+        const sessionEmoji = {
+          'asian': '🌏',
+          'london': '🌍',
+          'newyork': '🌎',
+          'overnight': '🌙'
+        }[sessionName] || '⏰';
+        
+        output.innerHTML = `
+          <div style="padding: 0.8rem; background: var(--panel); border-radius: 0.5rem; border-left: 3px solid var(--accent);">
+            <div style="font-size: 1.1rem; margin-bottom: 0.4rem;">${sessionEmoji} ${sessionName.charAt(0).toUpperCase() + sessionName.slice(1)} Session</div>
+            <div style="margin: 0.4rem 0; color: var(--muted);">
+              <strong>Active markets:</strong> ${markets || 'None currently'}
+            </div>
+            <div style="margin: 0.4rem 0; color: var(--muted);">
+              <strong>Expected volume:</strong> <span style="text-transform: capitalize;">${volume}</span>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--muted); margin-top: 0.6rem;">
+              ${volume === 'high' ? 'High liquidity expected - good for entries/exits' : 
+                volume === 'medium' ? 'Moderate liquidity - normal conditions' :
+                'Low liquidity - wider spreads expected'}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderEconomicEventsList(events) {
+        const output = document.getElementById('calendar-output');
+        if (!events || events.length === 0) {
+          output.innerHTML = '<div class="small">No major events currently scheduled.</div>';
+          return;
+        }
+        
+        output.innerHTML = events.slice(0, 5).map(event => `
+          <div class="calendar-item" style="padding: 0.8rem; background: var(--panel); border-radius: 0.5rem; border-left: 3px solid ${event.impact === 'high' ? '#f87171' : event.impact === 'medium' ? '#fbbf24' : '#22c55e'}; margin-bottom: 0.6rem;">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+              <div>
+                <div style="font-weight: 600;">${escapeHtml(event.event || 'Economic Event')}</div>
+                <div style="font-size: 0.85rem; color: var(--muted);">${escapeHtml(event.time || 'TBA')}</div>
+              </div>
+              <div style="font-weight: 600; text-transform: uppercase; font-size: 0.75rem; color: ${event.impact === 'high' ? '#f87171' : event.impact === 'medium' ? '#fbbf24' : '#22c55e'};">
+                ${escapeHtml((event.impact || 'medium').toUpperCase())}
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      async function renderCorrelation() {
+        const output = document.getElementById('correlation-output');
+        try {
+          const res = await fetch('/correlation');
+          const data = await res.json();
+          const corr = data.correlation || {};
+          const movingTogether = corr.moving_together !== false;
+          const strength = corr.strength || 'weak';
+          
+          output.innerHTML = `
+            <div style="padding: 0.8rem; background: var(--panel); border-radius: 0.5rem; border-left: 3px solid ${movingTogether ? '#22c55e' : '#f87171'};">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                  <div style="font-size: 0.85rem; color: var(--muted);">Gold Signal</div>
+                  <div style="font-size: 1.5rem; font-weight: bold;">${corr.gold_score || 50}</div>
+                </div>
+                <div>
+                  <div style="font-size: 0.85rem; color: var(--muted);">Silver Signal</div>
+                  <div style="font-size: 1.5rem; font-weight: bold;">${corr.silver_score || 50}</div>
+                </div>
+              </div>
+              <div style="text-align: center; padding: 0.6rem; background: rgba(0,0,0,0.3); border-radius: 0.5rem; margin-bottom: 0.6rem;">
+                <div style="font-weight: 600;">Difference: ${corr.difference || 0}%</div>
+                <div style="font-size: 0.85rem; color: var(--muted);">${corr.correlation || 'unknown'}</div>
+              </div>
+              <div style="font-size: 0.85rem; color: var(--muted);">
+                ${movingTogether ? '✓ Gold and Silver signals are well-aligned' : '⚠ Gold and Silver signals diverging - check for asymmetric opportunity'}
+              </div>
+            </div>
+          `;
+        } catch (e) {
+          output.innerHTML = '<small style="color: var(--muted);">Correlation data unavailable</small>';
+        }
+      }
+
+
+      async function loadBacktest() {
+        const output = document.getElementById('backtest-output');
+        output.innerHTML = 'Loading…';
+        const res = await fetch('/backtest');
+        const data = await res.json();
+        output.innerHTML = `
+          <div class="grid-3">
+            <div class="metric-card">
+              <div class="metric-label">Total return</div>
+              <div class="metric-value">${formatNumber(data.total_return, 2)}%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Win rate</div>
+              <div class="metric-value">${formatNumber(data.win_rate, 2)}%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Trades</div>
+              <div class="metric-value">${data.trades ?? 0}</div>
+            </div>
+          </div>
+          <pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>
+        `;
+      }
+
+      async function saveSettings() {
+        const payload = {
+          weights: {
+            technical: Number(document.getElementById('tech-weight').value),
+            macro: Number(document.getElementById('macro-weight').value),
+            news: Number(document.getElementById('news-weight').value),
+          },
+          thresholds: {
+            bullish: Number(document.getElementById('bullish-threshold').value),
+            bearish: 35,
+          },
+        };
+        const res = await fetch(`/settings?metal=${encodeURIComponent(currentMetal)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.settings && typeof data.settings === 'object') {
+          settingsByMetal[currentMetal] = data.settings;
+        }
+        document.getElementById('settings-output').innerHTML = `Saved: ${escapeHtml(JSON.stringify(data.settings))}`;
+        loadSignal();
+      }
+
+      async function saveJournalEntry() {
+        const payload = {
+          timestamp: new Date().toISOString(),
+          action: document.getElementById('journal-action').value,
+          reason: document.getElementById('journal-reason').value,
+          price: document.getElementById('journal-price').value,
+        };
+        const res = await fetch('/journal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        document.getElementById('journal-output').innerHTML = `Saved ${data.entries.length} entries.`;
+      }
+
+      function drawSignalHistoryChart(history, timestamps = []) {
+        const chartContext = getChartContext('signal-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
+        ctx.fillStyle = '#08111c';
+        ctx.fillRect(0, 0, width, height);
+
+        const yFromScore = (score) => height - (score / 100) * (height - 20) - 10;
+        const bullishY = yFromScore(65);
+        const bearishY = yFromScore(35);
+        ctx.fillStyle = 'rgba(34, 197, 94, 0.08)';
+        ctx.fillRect(0, 0, width, bullishY);
+        ctx.fillStyle = 'rgba(248, 113, 113, 0.08)';
+        ctx.fillRect(0, bearishY, width, height - bearishY);
+
+        ctx.strokeStyle = '#22344d';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = 0; x <= width; x += 40) {
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+        }
+        for (let y = 0; y <= height; y += 40) {
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+        }
+        ctx.stroke();
+
+        const normalized = history.map((point, index) => {
+          const x = (index / Math.max(1, history.length - 1)) * (width - 20) + 10;
+          const y = height - (point / 100) * (height - 20) - 10;
+          return { x, y };
+        });
+        latestSignalPlot = normalized.map((point, index) => ({ x: point.x, y: point.y, value: history[index], ts: timestamps[index] || null }));
+
+        ctx.beginPath();
+        normalized.forEach((point, index) => {
+          if (index === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = '#2dd4bf';
+        ctx.stroke();
+
+        const latest = Number(history[history.length - 1] ?? 50);
+        const high = Math.max(...history);
+        const low = Math.min(...history);
+        const latestPoint = normalized[normalized.length - 1];
+
+        if (latestPoint) {
+          ctx.fillStyle = '#2dd4bf';
+          ctx.beginPath();
+          ctx.arc(latestPoint.x, latestPoint.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        const drawBadge = (x, y, text) => {
+          ctx.font = '11px Arial';
+          const padX = 6;
+          const padY = 4;
+          const textWidth = ctx.measureText(text).width;
+          const w = textWidth + padX * 2;
+          const h = 18;
+          const rx = Math.max(6, Math.min(width - w - 6, x));
+          const ry = Math.max(6, Math.min(height - h - 6, y));
+          ctx.fillStyle = 'rgba(5, 12, 22, 0.92)';
+          ctx.fillRect(rx, ry, w, h);
+          ctx.strokeStyle = 'rgba(142, 160, 184, 0.45)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(rx, ry, w, h);
+          ctx.fillStyle = '#f4f7fb';
+          ctx.fillText(text, rx + padX, ry + h - padY - 1);
+        };
+
+        const highIndex = history.indexOf(high);
+        const lowIndex = history.indexOf(low);
+        const highPoint = normalized[Math.max(0, highIndex)];
+        const lowPoint = normalized[Math.max(0, lowIndex)];
+        if (latestPoint) drawBadge(latestPoint.x + 8, latestPoint.y - 10, `Now ${formatNumber(latest, 1)}`);
+        if (highPoint) drawBadge(highPoint.x + 8, highPoint.y - 22, `High ${formatNumber(high, 1)}`);
+        if (lowPoint) drawBadge(lowPoint.x + 8, lowPoint.y + 6, `Low ${formatNumber(low, 1)}`);
+
+        ctx.fillStyle = '#f4f7fb';
+        ctx.font = '12px Arial';
+        ctx.fillText('Score trend', 14, 18);
+      }
+
+      function drawPriceChart(history, timestamps = []) {
+        const chartContext = getChartContext('price-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
+        ctx.fillStyle = '#08111c';
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.strokeStyle = '#22344d';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = 0; x <= width; x += 40) {
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+        }
+        for (let y = 0; y <= height; y += 40) {
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+        }
+        ctx.stroke();
+
+        const min = Math.min(...history);
+        const max = Math.max(...history);
+        const support = percentile(history, 0.25);
+        const resistance = percentile(history, 0.75);
+        const toY = (value) => height - ((value - min) / Math.max(1, max - min)) * (height - 20) - 10;
+        ctx.fillStyle = 'rgba(45,212,191,0.1)';
+        ctx.fillRect(0, toY(resistance), width, Math.max(2, toY(support) - toY(resistance)));
+        const normalized = history.map((point, index) => {
+          const x = (index / Math.max(1, history.length - 1)) * (width - 20) + 10;
+          const y = height - ((point - min) / Math.max(1, max - min)) * (height - 20) - 10;
+          return { x, y };
+        });
+        latestPricePlot = normalized.map((point, index) => ({ x: point.x, y: point.y, value: history[index], ts: timestamps[index] || null }));
+
+        ctx.beginPath();
+        normalized.forEach((point, index) => {
+          if (index === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = '#fbbf24';
+        ctx.stroke();
+
+        const latest = Number(history[history.length - 1] ?? 0);
+        const latestPoint = normalized[normalized.length - 1];
+        if (latestPoint) {
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.arc(latestPoint.x, latestPoint.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        const drawBadge = (x, y, text) => {
+          ctx.font = '11px Arial';
+          const padX = 6;
+          const padY = 4;
+          const textWidth = ctx.measureText(text).width;
+          const w = textWidth + padX * 2;
+          const h = 18;
+          const rx = Math.max(6, Math.min(width - w - 6, x));
+          const ry = Math.max(6, Math.min(height - h - 6, y));
+          ctx.fillStyle = 'rgba(5, 12, 22, 0.92)';
+          ctx.fillRect(rx, ry, w, h);
+          ctx.strokeStyle = 'rgba(142, 160, 184, 0.45)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(rx, ry, w, h);
+          ctx.fillStyle = '#f4f7fb';
+          ctx.fillText(text, rx + padX, ry + h - padY - 1);
+        };
+
+        const highIndex = history.indexOf(max);
+        const lowIndex = history.indexOf(min);
+        const highPoint = normalized[Math.max(0, highIndex)];
+        const lowPoint = normalized[Math.max(0, lowIndex)];
+        const digits = currentMetal === 'silver' ? 2 : 1;
+        if (latestPoint) drawBadge(latestPoint.x + 8, latestPoint.y - 10, `Now ${formatNumber(latest, digits)}`);
+        if (highPoint) drawBadge(highPoint.x + 8, highPoint.y - 22, `High ${formatNumber(max, digits)}`);
+        if (lowPoint) drawBadge(lowPoint.x + 8, lowPoint.y + 6, `Low ${formatNumber(min, digits)}`);
+
+        ctx.fillStyle = '#f4f7fb';
+        ctx.font = '12px Arial';
+        ctx.fillText('Price action', 14, 18);
+      }
+
+      function attachCoreChartTooltips() {
+        const bindTooltip = (canvasId, tooltipId, dataProvider, digitsProvider, prefix = '') => {
+          const canvas = document.getElementById(canvasId);
+          const tip = document.getElementById(tooltipId);
+          if (!canvas || !tip || canvas.dataset.tooltipBound === '1') return;
+          canvas.dataset.tooltipBound = '1';
+
+          const show = (clientX, clientY) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            const points = dataProvider();
+            if (!points || !points.length) return;
+            let nearest = points[0];
+            let nearestDist = Number.MAX_VALUE;
+            points.forEach((p) => {
+              const d = Math.hypot(x - p.x, y - p.y);
+              if (d < nearestDist) {
+                nearest = p;
+                nearestDist = d;
+              }
+            });
+            if (nearestDist > 26) {
+              tip.style.display = 'none';
+              return;
+            }
+            const ts = nearest.ts ? new Date(nearest.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now';
+            const digits = typeof digitsProvider === 'function' ? digitsProvider() : 2;
+            tip.textContent = `${prefix}${formatNumber(nearest.value, digits)} @ ${ts}`;
+            tip.style.left = `${nearest.x}px`;
+            tip.style.top = `${nearest.y}px`;
+            tip.style.display = 'block';
+          };
+
+          canvas.addEventListener('mousemove', (event) => show(event.clientX, event.clientY));
+          canvas.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+          canvas.addEventListener('touchstart', (event) => {
+            if (event.changedTouches && event.changedTouches[0]) {
+              show(event.changedTouches[0].clientX, event.changedTouches[0].clientY);
+            }
+          }, { passive: true });
+          canvas.addEventListener('touchmove', (event) => {
+            if (event.changedTouches && event.changedTouches[0]) {
+              show(event.changedTouches[0].clientX, event.changedTouches[0].clientY);
+            }
+          }, { passive: true });
+          canvas.addEventListener('touchend', () => { tip.style.display = 'none'; }, { passive: true });
+        };
+
+        bindTooltip('signal-chart', 'signal-tooltip', () => latestSignalPlot, () => 1, 'Score ');
+        bindTooltip('price-chart', 'price-tooltip', () => latestPricePlot, () => currentMetal === 'silver' ? 2 : 1, 'Price ');
+      }
+
+      function drawComponentChart(technical, macro, news) {
+        const chartContext = getChartContext('component-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
+        ctx.fillStyle = '#08111c';
+        ctx.fillRect(0, 0, width, height);
+
+        const values = [technical, macro, news];
+        const labels = ['Technical', 'Macro', 'News'];
+        const colors = ['#2dd4bf', '#3b82f6', '#f59e0b'];
+        const barWidth = 60;
+        const gap = 30;
+        const left = (width - (barWidth * 3 + gap * 2)) / 2;
+
+        values.forEach((value, index) => {
+          const barHeight = (value / 100) * 140;
+          const x = left + index * (barWidth + gap);
+          const y = height - 30 - barHeight;
+          ctx.fillStyle = colors[index];
+          ctx.fillRect(x, y, barWidth, barHeight);
+          ctx.fillStyle = '#f4f7fb';
+          ctx.font = '12px Arial';
+          ctx.fillText(labels[index], x + 8, height - 10);
+          ctx.fillText(`${value.toFixed(0)}`, x + 16, y - 8);
+        });
+      }
+
+      function drawMomentumChart(score) {
+        const chartContext = getChartContext('momentum-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
+        ctx.fillStyle = '#08111c';
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.strokeStyle = '#22344d';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(20, height / 2);
+        ctx.lineTo(width - 20, height / 2);
+        ctx.stroke();
+
+        const rsi = Math.max(10, Math.min(90, score));
+        const x = 60;
+        const y = height / 2 - (rsi - 50) * 1.6;
+        ctx.fillStyle = rsi > 65 ? '#22c55e' : rsi < 35 ? '#f87171' : '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(x, y, 18, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#f4f7fb';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(100, height / 2);
+        ctx.lineTo(width - 40, height / 2 - (rsi - 50) * 1.4);
+        ctx.stroke();
+
+        ctx.fillStyle = '#f4f7fb';
+        ctx.font = '12px Arial';
+        ctx.fillText('Momentum', 14, 18);
+        ctx.fillText(`RSI-like ${rsi.toFixed(0)}`, 14, height - 12);
+      }
+
+      function drawDriverChart(technical, macro, news, composite) {
+        const chartContext = getChartContext('driver-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
+        ctx.fillStyle = '#08111c';
+        ctx.fillRect(0, 0, width, height);
+
+        const values = [technical, macro, news, composite];
+        const labels = ['Tech', 'Macro', 'News', 'Composite'];
+        const centerX = width / 2;
+        const centerY = height / 2 + 8;
+        const radius = 70;
+
+        ctx.strokeStyle = '#22344d';
+        ctx.lineWidth = 1;
+        for (let ring = 1; ring <= 4; ring += 1) {
+          ctx.beginPath();
+          for (let i = 0; i < 4; i += 1) {
+            const angle = -Math.PI / 2 + i * (Math.PI / 2);
+            const x = centerX + Math.cos(angle) * (radius * ring / 4);
+            const y = centerY + Math.sin(angle) * (radius * ring / 4);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.stroke();
+        }
+
+        ctx.beginPath();
+        values.forEach((value, index) => {
+          const angle = -Math.PI / 2 + index * (Math.PI / 2);
+          const distance = (Math.max(0, Math.min(100, value)) / 100) * radius;
+          const x = centerX + Math.cos(angle) * distance;
+          const y = centerY + Math.sin(angle) * distance;
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(45,212,191,0.25)';
+        ctx.fill();
+        ctx.strokeStyle = '#2dd4bf';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#f4f7fb';
+        ctx.font = '11px Arial';
+        values.forEach((value, index) => {
+          const angle = -Math.PI / 2 + index * (Math.PI / 2);
+          const labelX = centerX + Math.cos(angle) * (radius + 20);
+          const labelY = centerY + Math.sin(angle) * (radius + 20);
+          ctx.fillText(`${labels[index]} ${value.toFixed(0)}`, labelX - 30, labelY + 4);
+        });
+      }
+
+      function drawRegimeChart(score, direction) {
+        const chartContext = getChartContext('regime-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
+        ctx.fillStyle = '#08111c';
+        ctx.fillRect(0, 0, width, height);
+
+        const left = 40;
+        const top = 42;
+        const barWidth = width - 80;
+        const barHeight = 26;
+        const zones = [
+          { name: 'Bearish (0-40)', from: 0, to: 40, color: '#7f1d1d' },
+          { name: 'Neutral (40-60)', from: 40, to: 60, color: '#854d0e' },
+          { name: 'Bullish (60-100)', from: 60, to: 100, color: '#14532d' },
+        ];
+
+        zones.forEach((zone, index) => {
+          const zoneX = left + (zone.from / 100) * barWidth;
+          const zoneWidth = ((zone.to - zone.from) / 100) * barWidth;
+          const y = top + index * 52;
+          ctx.fillStyle = zone.color;
+          ctx.fillRect(zoneX, y, zoneWidth, barHeight);
+          ctx.strokeStyle = '#22344d';
+          ctx.strokeRect(left, y, barWidth, barHeight);
+          ctx.fillStyle = '#f4f7fb';
+          ctx.font = '11px Arial';
+          ctx.fillText(zone.name, left, y - 8);
+        });
+
+        const markerX = left + (Math.max(0, Math.min(100, score)) / 100) * barWidth;
+        const markerY = direction === 'bullish' ? top + 104 : direction === 'bearish' ? top : top + 52;
+        ctx.strokeStyle = '#f4f7fb';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(markerX, markerY - 8);
+        ctx.lineTo(markerX, markerY + barHeight + 8);
+        ctx.stroke();
+        ctx.fillStyle = '#f4f7fb';
+        ctx.font = '12px Arial';
+        ctx.fillText(`Regime marker: ${score.toFixed(1)}`, left, height - 16);
+      }
+
+      function drawSupportChart(currentPrice) {
+        const chartContext = getChartContext('support-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
+        ctx.fillStyle = '#08111c';
+        ctx.fillRect(0, 0, width, height);
+
+        const history = priceHistory.length ? priceHistory.slice(-16) : [currentPrice - 10, currentPrice, currentPrice + 10];
+        const support = percentile(history, 0.25);
+        const resistance = percentile(history, 0.75);
+        const min = Math.min(...history, support - (currentMetal === 'silver' ? 0.5 : 8));
+        const max = Math.max(...history, resistance + (currentMetal === 'silver' ? 0.5 : 8));
+
+        const left = 34;
+        const right = width - 22;
+        const top = 20;
+        const bottom = height - 24;
+        const chartWidth = Math.max(20, right - left);
+        const chartHeight = Math.max(20, bottom - top);
+        const toY = (price) => bottom - ((price - min) / Math.max(1e-9, max - min)) * chartHeight;
+
+        const supportY = toY(support);
+        const resistanceY = toY(resistance);
+        const currentY = toY(currentPrice);
+
+        // Background grid for easier level reading.
+        ctx.strokeStyle = '#22344d';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 4]);
+        for (let y = top; y <= bottom; y += chartHeight / 4) {
+          ctx.beginPath();
+          ctx.moveTo(left, y);
+          ctx.lineTo(right, y);
+          ctx.stroke();
+        }
+
+        // Zone shading between support and resistance.
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(45,212,191,0.12)';
+        ctx.fillRect(left, resistanceY, chartWidth, Math.max(2, supportY - resistanceY));
+
+        // Price path over recent prints.
+        ctx.beginPath();
+        history.forEach((price, index) => {
+          const x = left + (index / Math.max(1, history.length - 1)) * chartWidth;
+          const y = toY(price);
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.strokeStyle = currentMetal === 'silver' ? '#c9d6e5' : '#f7c948';
+        ctx.lineWidth = 2.2;
+        ctx.stroke();
+
+        // Resistance and support boundaries.
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = '#f87171';
+        ctx.beginPath();
+        ctx.moveTo(left, resistanceY);
+        ctx.lineTo(right, resistanceY);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#22c55e';
+        ctx.beginPath();
+        ctx.moveTo(left, supportY);
+        ctx.lineTo(right, supportY);
+        ctx.stroke();
+
+        // Current level marker.
+        ctx.setLineDash([]);
+        ctx.strokeStyle = '#f4f7fb';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(left, currentY);
+        ctx.lineTo(right, currentY);
+        ctx.stroke();
+
+        const upPct = resistance > 0 ? ((resistance - currentPrice) / resistance) * 100 : 0;
+        const downPct = support > 0 ? ((currentPrice - support) / support) * 100 : 0;
+
+        ctx.fillStyle = '#f4f7fb';
+        ctx.font = '11px Arial';
+        ctx.fillText(`R ${resistance.toFixed(currentMetal === 'silver' ? 2 : 1)}  |  +${Math.max(0, upPct).toFixed(2)}%`, left + 4, Math.max(top + 12, resistanceY - 6));
+        ctx.fillText(`S ${support.toFixed(currentMetal === 'silver' ? 2 : 1)}  |  -${Math.max(0, downPct).toFixed(2)}%`, left + 4, Math.min(bottom - 4, supportY + 13));
+        ctx.fillText(`Now ${currentPrice.toFixed(currentMetal === 'silver' ? 2 : 1)}`, left + 4, Math.max(top + 26, currentY - 6));
+      }
+
+      function drawScenarioChart(score) {
+        const chartContext = getChartContext('scenario-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
+        ctx.fillStyle = '#08111c';
+        ctx.fillRect(0, 0, width, height);
+
+        const bull = Math.min(100, score + 10);
+        const base = score;
+        const bear = Math.max(0, score - 10);
+        const path = [
+          { x: 48, bull, base, bear },
+          { x: 108, bull: Math.min(100, bull + 2), base: base, bear: Math.max(0, bear - 2) },
+          { x: 168, bull: Math.min(100, bull + 4), base: Math.max(0, base - 1), bear: Math.max(0, bear - 4) },
+          { x: 228, bull: Math.min(100, bull + 6), base: Math.max(0, base - 2), bear: Math.max(0, bear - 6) },
+          { x: 282, bull: Math.min(100, bull + 8), base: Math.max(0, base - 3), bear: Math.max(0, bear - 8) },
+        ];
+
+        const toY = (value) => height - 22 - (value / 100) * 150;
+        const drawLine = (seriesKey, color) => {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          path.forEach((point, index) => {
+            const y = toY(point[seriesKey]);
+            if (index === 0) ctx.moveTo(point.x, y);
+            else ctx.lineTo(point.x, y);
+          });
+          ctx.stroke();
+        };
+
+        drawLine('bull', '#22c55e');
+        drawLine('base', '#3b82f6');
+        drawLine('bear', '#f87171');
+
+        ctx.fillStyle = '#f4f7fb';
+        ctx.font = '11px Arial';
+        ctx.fillText(`Bull ${bull.toFixed(0)}`, 20, toY(path[0].bull) - 8);
+        ctx.fillText(`Base ${base.toFixed(0)}`, 20, toY(path[0].base) - 8);
+        ctx.fillText(`Bear ${bear.toFixed(0)}`, 20, toY(path[0].bear) - 8);
+        ctx.fillText('Forward confidence path', 154, 18);
+      }
+
+      function drawGauge(value) {
+        const canvas = document.getElementById('confidence-gauge');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        ctx.clearRect(0, 0, width, height);
+
+        ctx.strokeStyle = '#22344d';
+        ctx.lineWidth = 14;
+        ctx.beginPath();
+        ctx.arc(width / 2, height, width / 2 - 8, Math.PI, 0);
+        ctx.stroke();
+
+        const percent = Math.max(0, Math.min(100, value));
+        const start = Math.PI;
+        const end = start + (percent / 100) * Math.PI;
+        ctx.strokeStyle = percent >= 70 ? '#22c55e' : percent >= 40 ? '#fbbf24' : '#f87171';
+        ctx.beginPath();
+        ctx.arc(width / 2, height, width / 2 - 8, start, end);
+        ctx.stroke();
+
+        const needleAngle = start + (percent / 100) * Math.PI;
+        const needleX = width / 2 + Math.cos(needleAngle) * (width / 2 - 22);
+        const needleY = height + Math.sin(needleAngle) * (width / 2 - 22);
+        ctx.strokeStyle = '#f4f7fb';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(width / 2, height);
+        ctx.lineTo(needleX, needleY);
+        ctx.stroke();
+
+        ctx.fillStyle = '#f4f7fb';
+        ctx.beginPath();
+        ctx.arc(width / 2, height, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawGammaChart(gammaScore, gammaExposure) {
+        try {
+          const canvas = document.getElementById('gamma-chart');
+          if (!canvas) return;
+          const chartContext = getChartContext('gamma-chart', 230);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
+
+          // Draw gauge for gamma score
+          const gaugeX = width / 2;
+          const gaugeY = height / 2;
+          const gaugeRadius = 45;
+
+          // Draw background arc
+          ctx.strokeStyle = '#22344d';
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          ctx.arc(gaugeX, gaugeY, gaugeRadius, Math.PI, 0);
+          ctx.stroke();
+
+          // Draw gamma score arc
+          const gammaPercent = Math.max(0, Math.min(100, Number(gammaScore || 50)));
+          const gammaAngleStart = Math.PI;
+          const gammaAngleEnd = gammaAngleStart + (gammaPercent / 100) * Math.PI;
+          const gammaColor = gammaExposure === 'positive' ? '#22c55e' : gammaExposure === 'negative' ? '#f87171' : '#fbbf24';
+          ctx.strokeStyle = gammaColor;
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          ctx.arc(gaugeX, gaugeY, gaugeRadius, gammaAngleStart, gammaAngleEnd);
+          ctx.stroke();
+
+          // Draw text
+          ctx.fillStyle = '#f4f7fb';
+          ctx.font = 'bold 16px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(gammaPercent.toFixed(0), gaugeX, gaugeY + 6);
+          ctx.font = '11px Arial';
+          ctx.fillText('Gamma Score', gaugeX, height - 10);
+        } catch (e) {
+          console.error('Error drawing gamma chart:', e);
+        }
+      }
+
+      function drawGammaDetailChart(gammaScore) {
+        try {
+          const canvas = document.getElementById('gamma-detail-chart');
+          if (!canvas) return;
+          const chartContext = getChartContext('gamma-detail-chart', 230);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
+
+          const score = Number(gammaScore || 50);
+          // Determine rating
+          let rating = 'C';
+          let ratingColor = '#fbbf24';
+          if (score >= 80) {
+            rating = 'A+';
+            ratingColor = '#22c55e';
+          } else if (score >= 68) {
+            rating = 'A';
+            ratingColor = '#22c55e';
+          } else if (score >= 58) {
+            rating = 'B';
+            ratingColor = '#3b82f6';
+          } else if (score >= 46) {
+            rating = 'C';
+            ratingColor = '#fbbf24';
+          } else if (score >= 34) {
+            rating = 'D';
+            ratingColor = '#f87171';
+          } else {
+            rating = 'F';
+            ratingColor = '#f87171';
+          }
+
+          // Draw rating box
+          const boxX = width / 2 - 60;
+          const boxY = height / 2 - 40;
+          const boxWidth = 120;
+          const boxHeight = 80;
+
+          ctx.strokeStyle = ratingColor;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+          // Draw rating text
+          ctx.fillStyle = ratingColor;
+          ctx.font = 'bold 36px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(rating, width / 2, boxY + boxHeight / 2);
+
+          ctx.fillStyle = '#d5f3ec';
+          ctx.font = '11px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('Gamma Rating', width / 2, height - 10);
+        } catch (e) {
+          console.error('Error drawing gamma detail chart:', e);
+        }
+      }
+
+      function drawDeltaChart(deltaPosition, hedgeRatio) {
+        try {
+          const canvas = document.getElementById('delta-chart');
+          if (!canvas) return;
+          const chartContext = getChartContext('delta-chart', 230);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
+
+          // Draw delta position bar
+          const barX = 40;
+          const barY = height / 2 - 30;
+          const barWidth = width - 80;
+          const barHeight = 40;
+
+          // Background
+          ctx.fillStyle = '#22344d';
+          ctx.fillRect(barX, barY, barWidth, barHeight);
+
+          // Delta fill (clamped to 0-1)
+          const deltaPercent = Math.max(0, Math.min(1, Number(deltaPosition || 0.5)));
+          ctx.fillStyle = deltaPercent > 0.5 ? '#22c55e' : deltaPercent < 0.5 ? '#f87171' : '#fbbf24';
+          ctx.fillRect(barX, barY, barWidth * deltaPercent, barHeight);
+
+          // Border
+          ctx.strokeStyle = '#d5f3ec';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+          // Text
+          ctx.fillStyle = '#f4f7fb';
+          ctx.font = 'bold 12px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`Delta: ${(deltaPercent * 100).toFixed(0)}%`, width / 2, barY + barHeight / 2);
+
+          // Hedge ratio
+          ctx.font = '11px Arial';
+          const hedgePercent = Number(hedgeRatio || 0.5);
+          ctx.fillText(`Hedge Ratio: ${(hedgePercent * 100).toFixed(0)}%`, width / 2, height - 10);
+        } catch (e) {
+          console.error('Error drawing delta chart:', e);
+        }
+      }
+
+      function drawHedgeChart(hedgeEffectiveness) {
+        try {
+          const canvas = document.getElementById('hedge-chart');
+          if (!canvas) return;
+          const chartContext = getChartContext('hedge-chart', 230);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
+
+          const effectiveness = Math.max(0.5, Math.min(1.0, Number(hedgeEffectiveness || 0.7)));
+          // Draw effectiveness bars
+          const bars = [
+            { label: 'Risk Reduction', value: effectiveness, color: '#22c55e' },
+            { label: 'Cost Offset', value: effectiveness * 0.85, color: '#3b82f6' },
+            { label: 'P&L Stability', value: effectiveness * 0.95, color: '#fbbf24' },
+          ];
+
+          const barWidth = (width - 60) / bars.length;
+          const maxHeight = 100;
+
+          bars.forEach((bar, index) => {
+            const x = 30 + index * barWidth + barWidth * 0.1;
+            const barHeight = (bar.value / 1) * maxHeight;
+            const y = height - 30 - barHeight;
+
+            // Bar
+            ctx.fillStyle = bar.color;
+            ctx.fillRect(x, y, barWidth * 0.8, barHeight);
+
+            // Border
+            ctx.strokeStyle = '#d5f3ec';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, barWidth * 0.8, barHeight);
+
+            // Label
+            ctx.fillStyle = '#d5f3ec';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(bar.label, x + (barWidth * 0.4), height - 8);
+          });
+
+          ctx.fillStyle = '#d5f3ec';
+          ctx.font = '11px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('Hedge Effectiveness', width / 2, 15);
+        } catch (e) {
+          console.error('Error drawing hedge chart:', e);
+        }
+      }
+
+      function drawGammaChartMain(gammaScore, gammaExposure) {
+        try {
+          const canvas = document.getElementById('gamma-chart-main');
+          if (!canvas) return;
+          const chartContext = getChartContext('gamma-chart-main', 200);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
+
+          const gaugeX = width / 2;
+          const gaugeY = height / 2;
+          const gaugeRadius = 35;
+
+          ctx.strokeStyle = '#22344d';
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.arc(gaugeX, gaugeY, gaugeRadius, Math.PI, 0);
+          ctx.stroke();
+
+          const gammaPercent = Math.max(0, Math.min(100, Number(gammaScore || 50)));
+          const gammaAngleStart = Math.PI;
+          const gammaAngleEnd = gammaAngleStart + (gammaPercent / 100) * Math.PI;
+          const gammaColor = gammaExposure === 'positive' ? '#22c55e' : gammaExposure === 'negative' ? '#f87171' : '#fbbf24';
+          ctx.strokeStyle = gammaColor;
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.arc(gaugeX, gaugeY, gaugeRadius, gammaAngleStart, gammaAngleEnd);
+          ctx.stroke();
+
+          ctx.fillStyle = '#f4f7fb';
+          ctx.font = 'bold 14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(gammaPercent.toFixed(0), gaugeX, gaugeY + 5);
+        } catch (e) {
+          console.error('Error drawing gamma chart main:', e);
+        }
+      }
+
+      function drawGammaDetailChartMain(gammaScore) {
+        try {
+          const canvas = document.getElementById('gamma-detail-chart-main');
+          if (!canvas) return;
+          const chartContext = getChartContext('gamma-detail-chart-main', 200);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
+
+          const score = Number(gammaScore || 50);
+          let rating = 'C';
+          let ratingColor = '#fbbf24';
+          if (score >= 80) { rating = 'A+'; ratingColor = '#22c55e'; }
+          else if (score >= 68) { rating = 'A'; ratingColor = '#22c55e'; }
+          else if (score >= 58) { rating = 'B'; ratingColor = '#3b82f6'; }
+          else if (score >= 46) { rating = 'C'; ratingColor = '#fbbf24'; }
+          else if (score >= 34) { rating = 'D'; ratingColor = '#f87171'; }
+          else { rating = 'F'; ratingColor = '#f87171'; }
+
+          const boxX = width / 2 - 50;
+          const boxY = height / 2 - 35;
+          const boxWidth = 100;
+          const boxHeight = 70;
+
+          ctx.strokeStyle = ratingColor;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+          ctx.fillStyle = ratingColor;
+          ctx.font = 'bold 32px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(rating, width / 2, boxY + boxHeight / 2);
+        } catch (e) {
+          console.error('Error drawing gamma detail chart main:', e);
+        }
+      }
+
+      function drawDeltaChartMain(deltaPosition, hedgeRatio) {
+        try {
+          const canvas = document.getElementById('delta-chart-main');
+          if (!canvas) return;
+          const chartContext = getChartContext('delta-chart-main', 200);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
+
+          const barX = 30;
+          const barY = height / 2 - 25;
+          const barWidth = width - 60;
+          const barHeight = 35;
+
+          ctx.fillStyle = '#22344d';
+          ctx.fillRect(barX, barY, barWidth, barHeight);
+
+          const deltaPercent = Math.max(0, Math.min(1, Number(deltaPosition || 0.5)));
+          ctx.fillStyle = deltaPercent > 0.5 ? '#22c55e' : deltaPercent < 0.5 ? '#f87171' : '#fbbf24';
+          ctx.fillRect(barX, barY, barWidth * deltaPercent, barHeight);
+
+          ctx.strokeStyle = '#d5f3ec';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+          ctx.fillStyle = '#f4f7fb';
+          ctx.font = 'bold 11px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`${(deltaPercent * 100).toFixed(0)}%`, width / 2, barY + barHeight / 2);
+        } catch (e) {
+          console.error('Error drawing delta chart main:', e);
+        }
+      }
+
+      function drawHedgeChartMain(hedgeEffectiveness) {
+        try {
+          const canvas = document.getElementById('hedge-chart-main');
+          if (!canvas) return;
+          const chartContext = getChartContext('hedge-chart-main', 200);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
+
+          const effectiveness = Math.max(0.5, Math.min(1.0, Number(hedgeEffectiveness || 0.7)));
+          const bars = [
+            { value: effectiveness, color: '#22c55e' },
+            { value: effectiveness * 0.85, color: '#3b82f6' },
+            { value: effectiveness * 0.95, color: '#fbbf24' },
+          ];
+
+          const barWidth = (width - 40) / bars.length;
+          const maxHeight = 80;
+
+          bars.forEach((bar, index) => {
+            const x = 20 + index * barWidth + barWidth * 0.1;
+            const barHeight = (bar.value / 1) * maxHeight;
+            const y = height - 25 - barHeight;
+
+            ctx.fillStyle = bar.color;
+            ctx.fillRect(x, y, barWidth * 0.8, barHeight);
+
+            ctx.strokeStyle = '#d5f3ec';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, barWidth * 0.8, barHeight);
+          });
+        } catch (e) {
+          console.error('Error drawing hedge chart main:', e);
+        }
+      }
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {
+            // Ignore service worker registration failures in unsupported contexts.
+          });
+        });
+      }
+
+      setMetal('gold');
+      attachCoreChartTooltips();
+      loadBacktest();
+      renderAllCharts();
+      drawGauge(50);
+
+      let resizeTimer;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          renderAllCharts();
+          drawGauge(Math.min(100, Math.max(10, Math.abs((latestChartState.score || 50) - 50) * 2)));
+        }, 120);
+      });
+    </script>
+  </body>
+</html>
