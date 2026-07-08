@@ -649,7 +649,7 @@
       let priceTimestamps = [];
       let currentMetal = 'gold';
       let chartRange = '1d';
-      let chartView = 'core';
+      let chartView = 'all';
       let settingsByMetal = {
         gold: { weights: { technical: 0.35, macro: 0.30, news: 0.35 }, thresholds: { bullish: 65, bearish: 35 } },
         silver: { weights: { technical: 0.35, macro: 0.30, news: 0.35 }, thresholds: { bullish: 65, bearish: 35 } },
@@ -667,6 +667,12 @@
         const canvas = document.getElementById(canvasId);
         const parent = canvas.parentElement;
         const rect = parent.getBoundingClientRect();
+        
+        // Skip rendering if canvas is hidden or has no dimensions
+        if (rect.width === 0 || rect.height === 0) {
+          return null;
+        }
+        
         const width = Math.max(240, Math.round(rect.width - 8));
         const inferredHeight = rect.height > 20 ? rect.height - 8 : Math.round(width * 0.68);
         const height = Math.max(minHeight, inferredHeight);
@@ -1483,7 +1489,9 @@
       }
 
       function drawSignalHistoryChart(history, timestamps = []) {
-        const { ctx, width, height } = getChartContext('signal-chart', 230);
+        const chartContext = getChartContext('signal-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
         ctx.fillStyle = '#08111c';
         ctx.fillRect(0, 0, width, height);
 
@@ -1568,7 +1576,9 @@
       }
 
       function drawPriceChart(history, timestamps = []) {
-        const { ctx, width, height } = getChartContext('price-chart', 230);
+        const chartContext = getChartContext('price-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
         ctx.fillStyle = '#08111c';
         ctx.fillRect(0, 0, width, height);
 
@@ -1703,7 +1713,9 @@
       }
 
       function drawComponentChart(technical, macro, news) {
-        const { ctx, width, height } = getChartContext('component-chart', 230);
+        const chartContext = getChartContext('component-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
         ctx.fillStyle = '#08111c';
         ctx.fillRect(0, 0, width, height);
 
@@ -1728,7 +1740,9 @@
       }
 
       function drawMomentumChart(score) {
-        const { ctx, width, height } = getChartContext('momentum-chart', 230);
+        const chartContext = getChartContext('momentum-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
         ctx.fillStyle = '#08111c';
         ctx.fillRect(0, 0, width, height);
 
@@ -1761,7 +1775,9 @@
       }
 
       function drawDriverChart(technical, macro, news, composite) {
-        const { ctx, width, height } = getChartContext('driver-chart', 230);
+        const chartContext = getChartContext('driver-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
         ctx.fillStyle = '#08111c';
         ctx.fillRect(0, 0, width, height);
 
@@ -1813,7 +1829,9 @@
       }
 
       function drawRegimeChart(score, direction) {
-        const { ctx, width, height } = getChartContext('regime-chart', 230);
+        const chartContext = getChartContext('regime-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
         ctx.fillStyle = '#08111c';
         ctx.fillRect(0, 0, width, height);
 
@@ -1854,7 +1872,9 @@
       }
 
       function drawSupportChart(currentPrice) {
-        const { ctx, width, height } = getChartContext('support-chart', 230);
+        const chartContext = getChartContext('support-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
         ctx.fillStyle = '#08111c';
         ctx.fillRect(0, 0, width, height);
 
@@ -1938,7 +1958,9 @@
       }
 
       function drawScenarioChart(score) {
-        const { ctx, width, height } = getChartContext('scenario-chart', 230);
+        const chartContext = getChartContext('scenario-chart', 230);
+        if (!chartContext) return;
+        const { ctx, width, height } = chartContext;
         ctx.fillStyle = '#08111c';
         ctx.fillRect(0, 0, width, height);
 
@@ -2016,170 +2038,205 @@
       }
 
       function drawGammaChart(gammaScore, gammaExposure) {
-        const { ctx, width, height } = getChartContext('gamma-chart', 230);
-        ctx.fillStyle = '#08111c';
-        ctx.fillRect(0, 0, width, height);
+        try {
+          const canvas = document.getElementById('gamma-chart');
+          if (!canvas) return;
+          const chartContext = getChartContext('gamma-chart', 230);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
 
-        // Draw gauge for gamma score
-        const gaugeX = width / 2;
-        const gaugeY = height / 2;
-        const gaugeRadius = 45;
+          // Draw gauge for gamma score
+          const gaugeX = width / 2;
+          const gaugeY = height / 2;
+          const gaugeRadius = 45;
 
-        // Draw background arc
-        ctx.strokeStyle = '#22344d';
-        ctx.lineWidth = 8;
-        ctx.beginPath();
-        ctx.arc(gaugeX, gaugeY, gaugeRadius, Math.PI, 0);
-        ctx.stroke();
+          // Draw background arc
+          ctx.strokeStyle = '#22344d';
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          ctx.arc(gaugeX, gaugeY, gaugeRadius, Math.PI, 0);
+          ctx.stroke();
 
-        // Draw gamma score arc
-        const gammaPercent = Math.max(0, Math.min(100, gammaScore));
-        const gammaAngleStart = Math.PI;
-        const gammaAngleEnd = gammaAngleStart + (gammaPercent / 100) * Math.PI;
-        const gammaColor = gammaExposure === 'positive' ? '#22c55e' : gammaExposure === 'negative' ? '#f87171' : '#fbbf24';
-        ctx.strokeStyle = gammaColor;
-        ctx.lineWidth = 8;
-        ctx.beginPath();
-        ctx.arc(gaugeX, gaugeY, gaugeRadius, gammaAngleStart, gammaAngleEnd);
-        ctx.stroke();
+          // Draw gamma score arc
+          const gammaPercent = Math.max(0, Math.min(100, Number(gammaScore || 50)));
+          const gammaAngleStart = Math.PI;
+          const gammaAngleEnd = gammaAngleStart + (gammaPercent / 100) * Math.PI;
+          const gammaColor = gammaExposure === 'positive' ? '#22c55e' : gammaExposure === 'negative' ? '#f87171' : '#fbbf24';
+          ctx.strokeStyle = gammaColor;
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          ctx.arc(gaugeX, gaugeY, gaugeRadius, gammaAngleStart, gammaAngleEnd);
+          ctx.stroke();
 
-        // Draw text
-        ctx.fillStyle = '#f4f7fb';
-        ctx.font = 'bold 16px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(gammaScore.toFixed(0), gaugeX, gaugeY + 6);
-        ctx.font = '11px Arial';
-        ctx.fillText('Gamma Score', gaugeX, height - 10);
+          // Draw text
+          ctx.fillStyle = '#f4f7fb';
+          ctx.font = 'bold 16px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(gammaPercent.toFixed(0), gaugeX, gaugeY + 6);
+          ctx.font = '11px Arial';
+          ctx.fillText('Gamma Score', gaugeX, height - 10);
+        } catch (e) {
+          console.error('Error drawing gamma chart:', e);
+        }
       }
 
       function drawGammaDetailChart(gammaScore) {
-        const { ctx, width, height } = getChartContext('gamma-detail-chart', 230);
-        ctx.fillStyle = '#08111c';
-        ctx.fillRect(0, 0, width, height);
+        try {
+          const canvas = document.getElementById('gamma-detail-chart');
+          if (!canvas) return;
+          const chartContext = getChartContext('gamma-detail-chart', 230);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
 
-        // Determine rating
-        let rating = 'C';
-        let ratingColor = '#fbbf24';
-        if (gammaScore >= 80) {
-          rating = 'A+';
-          ratingColor = '#22c55e';
-        } else if (gammaScore >= 68) {
-          rating = 'A';
-          ratingColor = '#22c55e';
-        } else if (gammaScore >= 58) {
-          rating = 'B';
-          ratingColor = '#3b82f6';
-        } else if (gammaScore >= 46) {
-          rating = 'C';
-          ratingColor = '#fbbf24';
-        } else if (gammaScore >= 34) {
-          rating = 'D';
-          ratingColor = '#f87171';
-        } else {
-          rating = 'F';
-          ratingColor = '#f87171';
+          const score = Number(gammaScore || 50);
+          // Determine rating
+          let rating = 'C';
+          let ratingColor = '#fbbf24';
+          if (score >= 80) {
+            rating = 'A+';
+            ratingColor = '#22c55e';
+          } else if (score >= 68) {
+            rating = 'A';
+            ratingColor = '#22c55e';
+          } else if (score >= 58) {
+            rating = 'B';
+            ratingColor = '#3b82f6';
+          } else if (score >= 46) {
+            rating = 'C';
+            ratingColor = '#fbbf24';
+          } else if (score >= 34) {
+            rating = 'D';
+            ratingColor = '#f87171';
+          } else {
+            rating = 'F';
+            ratingColor = '#f87171';
+          }
+
+          // Draw rating box
+          const boxX = width / 2 - 60;
+          const boxY = height / 2 - 40;
+          const boxWidth = 120;
+          const boxHeight = 80;
+
+          ctx.strokeStyle = ratingColor;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+          // Draw rating text
+          ctx.fillStyle = ratingColor;
+          ctx.font = 'bold 36px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(rating, width / 2, boxY + boxHeight / 2);
+
+          ctx.fillStyle = '#d5f3ec';
+          ctx.font = '11px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('Gamma Rating', width / 2, height - 10);
+        } catch (e) {
+          console.error('Error drawing gamma detail chart:', e);
         }
-
-        // Draw rating box
-        const boxX = width / 2 - 60;
-        const boxY = height / 2 - 40;
-        const boxWidth = 120;
-        const boxHeight = 80;
-
-        ctx.strokeStyle = ratingColor;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
-
-        // Draw rating text
-        ctx.fillStyle = ratingColor;
-        ctx.font = 'bold 36px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(rating, width / 2, boxY + boxHeight / 2);
-
-        ctx.fillStyle = '#d5f3ec';
-        ctx.font = '11px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Gamma Rating', width / 2, height - 10);
       }
 
       function drawDeltaChart(deltaPosition, hedgeRatio) {
-        const { ctx, width, height } = getChartContext('delta-chart', 230);
-        ctx.fillStyle = '#08111c';
-        ctx.fillRect(0, 0, width, height);
+        try {
+          const canvas = document.getElementById('delta-chart');
+          if (!canvas) return;
+          const chartContext = getChartContext('delta-chart', 230);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
 
-        // Draw delta position bar
-        const barX = 40;
-        const barY = height / 2 - 30;
-        const barWidth = width - 80;
-        const barHeight = 40;
+          // Draw delta position bar
+          const barX = 40;
+          const barY = height / 2 - 30;
+          const barWidth = width - 80;
+          const barHeight = 40;
 
-        // Background
-        ctx.fillStyle = '#22344d';
-        ctx.fillRect(barX, barY, barWidth, barHeight);
+          // Background
+          ctx.fillStyle = '#22344d';
+          ctx.fillRect(barX, barY, barWidth, barHeight);
 
-        // Delta fill (clamped to 0-1)
-        const deltaPercent = Math.max(0, Math.min(1, deltaPosition));
-        ctx.fillStyle = deltaPercent > 0.5 ? '#22c55e' : deltaPercent < 0.5 ? '#f87171' : '#fbbf24';
-        ctx.fillRect(barX, barY, barWidth * deltaPercent, barHeight);
-
-        // Border
-        ctx.strokeStyle = '#d5f3ec';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(barX, barY, barWidth, barHeight);
-
-        // Text
-        ctx.fillStyle = '#f4f7fb';
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`Delta: ${(deltaPercent * 100).toFixed(0)}%`, width / 2, barY + barHeight / 2);
-
-        // Hedge ratio
-        ctx.font = '11px Arial';
-        ctx.fillText(`Hedge Ratio: ${(hedgeRatio * 100).toFixed(0)}%`, width / 2, height - 10);
-      }
-
-      function drawHedgeChart(hedgeEffectiveness) {
-        const { ctx, width, height } = getChartContext('hedge-chart', 230);
-        ctx.fillStyle = '#08111c';
-        ctx.fillRect(0, 0, width, height);
-
-        // Draw effectiveness bars
-        const bars = [
-          { label: 'Risk Reduction', value: hedgeEffectiveness, color: '#22c55e' },
-          { label: 'Cost Offset', value: hedgeEffectiveness * 0.85, color: '#3b82f6' },
-          { label: 'P&L Stability', value: hedgeEffectiveness * 0.95, color: '#fbbf24' },
-        ];
-
-        const barWidth = (width - 60) / bars.length;
-        const maxHeight = 100;
-
-        bars.forEach((bar, index) => {
-          const x = 30 + index * barWidth + barWidth * 0.1;
-          const barHeight = (bar.value / 1) * maxHeight;
-          const y = height - 30 - barHeight;
-
-          // Bar
-          ctx.fillStyle = bar.color;
-          ctx.fillRect(x, y, barWidth * 0.8, barHeight);
+          // Delta fill (clamped to 0-1)
+          const deltaPercent = Math.max(0, Math.min(1, Number(deltaPosition || 0.5)));
+          ctx.fillStyle = deltaPercent > 0.5 ? '#22c55e' : deltaPercent < 0.5 ? '#f87171' : '#fbbf24';
+          ctx.fillRect(barX, barY, barWidth * deltaPercent, barHeight);
 
           // Border
           ctx.strokeStyle = '#d5f3ec';
           ctx.lineWidth = 1;
-          ctx.strokeRect(x, y, barWidth * 0.8, barHeight);
+          ctx.strokeRect(barX, barY, barWidth, barHeight);
 
-          // Label
-          ctx.fillStyle = '#d5f3ec';
-          ctx.font = '10px Arial';
+          // Text
+          ctx.fillStyle = '#f4f7fb';
+          ctx.font = 'bold 12px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText(bar.label, x + (barWidth * 0.4), height - 8);
-        });
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`Delta: ${(deltaPercent * 100).toFixed(0)}%`, width / 2, barY + barHeight / 2);
 
-        ctx.fillStyle = '#d5f3ec';
-        ctx.font = '11px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Hedge Effectiveness', width / 2, 15);
+          // Hedge ratio
+          ctx.font = '11px Arial';
+          const hedgePercent = Number(hedgeRatio || 0.5);
+          ctx.fillText(`Hedge Ratio: ${(hedgePercent * 100).toFixed(0)}%`, width / 2, height - 10);
+        } catch (e) {
+          console.error('Error drawing delta chart:', e);
+        }
+      }
+
+      function drawHedgeChart(hedgeEffectiveness) {
+        try {
+          const canvas = document.getElementById('hedge-chart');
+          if (!canvas) return;
+          const chartContext = getChartContext('hedge-chart', 230);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
+
+          const effectiveness = Math.max(0.5, Math.min(1.0, Number(hedgeEffectiveness || 0.7)));
+          // Draw effectiveness bars
+          const bars = [
+            { label: 'Risk Reduction', value: effectiveness, color: '#22c55e' },
+            { label: 'Cost Offset', value: effectiveness * 0.85, color: '#3b82f6' },
+            { label: 'P&L Stability', value: effectiveness * 0.95, color: '#fbbf24' },
+          ];
+
+          const barWidth = (width - 60) / bars.length;
+          const maxHeight = 100;
+
+          bars.forEach((bar, index) => {
+            const x = 30 + index * barWidth + barWidth * 0.1;
+            const barHeight = (bar.value / 1) * maxHeight;
+            const y = height - 30 - barHeight;
+
+            // Bar
+            ctx.fillStyle = bar.color;
+            ctx.fillRect(x, y, barWidth * 0.8, barHeight);
+
+            // Border
+            ctx.strokeStyle = '#d5f3ec';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, barWidth * 0.8, barHeight);
+
+            // Label
+            ctx.fillStyle = '#d5f3ec';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(bar.label, x + (barWidth * 0.4), height - 8);
+          });
+
+          ctx.fillStyle = '#d5f3ec';
+          ctx.font = '11px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('Hedge Effectiveness', width / 2, 15);
+        } catch (e) {
+          console.error('Error drawing hedge chart:', e);
+        }
       }
 
       if ('serviceWorker' in navigator) {
