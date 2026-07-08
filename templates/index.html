@@ -580,6 +580,41 @@
 
       <div class="grid-2">
         <div class="card">
+          <div class="section-title">Gamma Exposure</div>
+          <div class="small">Dealer gamma positioning and regime implications</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+            <div class="metric-card chart-card">
+              <div class="chart-topline"><div class="section-title">Gamma score</div></div>
+              <div class="chart-wrap"><canvas id="gamma-chart-main"></canvas></div>
+              <div id="gamma-value-strip-main" class="value-strip" style="margin-top: 0.5rem;">Score -- | Exposure --</div>
+            </div>
+            <div class="metric-card chart-card">
+              <div class="chart-topline"><div class="section-title">Rating</div></div>
+              <div class="chart-wrap"><canvas id="gamma-detail-chart-main"></canvas></div>
+            </div>
+          </div>
+          <div id="gamma-context" style="margin-top: 1rem; padding: 0.8rem; background: rgba(30, 58, 95, 0.15); border-radius: 10px; color: #d5f3ec; font-size: 0.9rem;">Gamma regime context loading…</div>
+        </div>
+        <div class="card">
+          <div class="section-title">Delta Hedging</div>
+          <div class="small">Position delta and hedge effectiveness metrics</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+            <div class="metric-card chart-card">
+              <div class="chart-topline"><div class="section-title">Delta position</div></div>
+              <div class="chart-wrap"><canvas id="delta-chart-main"></canvas></div>
+              <div id="delta-value-strip-main" class="value-strip" style="margin-top: 0.5rem;">Delta -- | Hedge --</div>
+            </div>
+            <div class="metric-card chart-card">
+              <div class="chart-topline"><div class="section-title">Hedge quality</div></div>
+              <div class="chart-wrap"><canvas id="hedge-chart-main"></canvas></div>
+            </div>
+          </div>
+          <div id="delta-context" style="margin-top: 1rem; padding: 0.8rem; background: rgba(30, 58, 95, 0.15); border-radius: 10px; color: #d5f3ec; font-size: 0.9rem;">Delta hedge context loading…</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
           <div class="section-title">Deeper analysis notes</div>
         <div id="analysis-insights" class="insight-grid">Loading…</div>
         <div id="analysis-note" class="analysis-note">Waiting for updated market context…</div>
@@ -704,6 +739,10 @@
         drawGammaDetailChart(latestChartState.gammaScore);
         drawDeltaChart(latestChartState.deltaPosition, latestChartState.hedgeRatio);
         drawHedgeChart(latestChartState.hedgeEffectiveness);
+        drawGammaChartMain(latestChartState.gammaScore, latestChartState.gammaExposure);
+        drawGammaDetailChartMain(latestChartState.gammaScore);
+        drawDeltaChartMain(latestChartState.deltaPosition, latestChartState.hedgeRatio);
+        drawHedgeChartMain(latestChartState.hedgeEffectiveness);
         updateValueStrips(visibleScore.values, visibleScore.timestamps, visiblePrice.values, visiblePrice.timestamps);
       }
 
@@ -785,10 +824,22 @@
           gammaStrip.textContent = `Gamma Score ${formatNumber(latestChartState.gammaScore, 0)} | Exposure ${latestChartState.gammaExposure.toUpperCase()} | Regime --`;
         }
 
+        // Update gamma value strip (main page)
+        const gammaStripMain = document.getElementById('gamma-value-strip-main');
+        if (gammaStripMain) {
+          gammaStripMain.textContent = `Score ${formatNumber(latestChartState.gammaScore, 0)} | Exposure ${latestChartState.gammaExposure.toUpperCase()}`;
+        }
+
         // Update delta value strip
         const deltaStrip = document.getElementById('delta-value-strip');
         if (deltaStrip) {
           deltaStrip.textContent = `Delta Position ${toPercent(latestChartState.deltaPosition, 0)} | Hedge Ratio ${toPercent(latestChartState.hedgeRatio, 0)} | Effectiveness ${toPercent(latestChartState.hedgeEffectiveness, 0)}`;
+        }
+
+        // Update delta value strip (main page)
+        const deltaStripMain = document.getElementById('delta-value-strip-main');
+        if (deltaStripMain) {
+          deltaStripMain.textContent = `Delta ${toPercent(latestChartState.deltaPosition, 0)} | Hedge ${toPercent(latestChartState.hedgeRatio, 0)}`;
         }
       }
 
@@ -1421,6 +1472,31 @@
         `).join('');
         bindInsightToggles();
         document.getElementById('analysis-note').textContent = analysis.note;
+
+        // Update gamma context
+        const gammaContext = document.getElementById('gamma-context');
+        if (gammaContext) {
+          const gammaExposure = data.gamma_signal?.exposure || 'neutral';
+          const gammaRegime = data.gamma_signal?.regime || 'balanced';
+          const gammaNote = data.gamma_signal?.note || 'Gamma backdrop looks balanced.';
+          gammaContext.innerHTML = `
+            <strong>${escapeHtml(gammaExposure.toUpperCase())} exposure</strong> (${escapeHtml(gammaRegime)})<br>
+            <small>${escapeHtml(gammaNote)}</small>
+          `;
+        }
+
+        // Update delta context
+        const deltaContext = document.getElementById('delta-context');
+        if (deltaContext) {
+          const rangePosition = Number(data.gamma_signal?.range_position || 50);
+          const hedgeRatioMain = 0.5 + (Number(data.macro_score || 50) - 50) / 200;
+          const hedgeEffectMain = Math.max(0.5, Math.min(1.0, (Number(data.technical_score || 50) + Number(data.macro_score || 50)) / 200));
+          deltaContext.innerHTML = `
+            <strong>Position:</strong> ${rangePosition.toFixed(0)}% of range<br>
+            <strong>Hedge ratio:</strong> ${(hedgeRatioMain * 100).toFixed(0)}%<br>
+            <strong>Effectiveness:</strong> ${(hedgeEffectMain * 100).toFixed(0)}%
+          `;
+        }
       }
 
       async function loadBacktest() {
@@ -2236,6 +2312,157 @@
           ctx.fillText('Hedge Effectiveness', width / 2, 15);
         } catch (e) {
           console.error('Error drawing hedge chart:', e);
+        }
+      }
+
+      function drawGammaChartMain(gammaScore, gammaExposure) {
+        try {
+          const canvas = document.getElementById('gamma-chart-main');
+          if (!canvas) return;
+          const chartContext = getChartContext('gamma-chart-main', 200);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
+
+          const gaugeX = width / 2;
+          const gaugeY = height / 2;
+          const gaugeRadius = 35;
+
+          ctx.strokeStyle = '#22344d';
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.arc(gaugeX, gaugeY, gaugeRadius, Math.PI, 0);
+          ctx.stroke();
+
+          const gammaPercent = Math.max(0, Math.min(100, Number(gammaScore || 50)));
+          const gammaAngleStart = Math.PI;
+          const gammaAngleEnd = gammaAngleStart + (gammaPercent / 100) * Math.PI;
+          const gammaColor = gammaExposure === 'positive' ? '#22c55e' : gammaExposure === 'negative' ? '#f87171' : '#fbbf24';
+          ctx.strokeStyle = gammaColor;
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.arc(gaugeX, gaugeY, gaugeRadius, gammaAngleStart, gammaAngleEnd);
+          ctx.stroke();
+
+          ctx.fillStyle = '#f4f7fb';
+          ctx.font = 'bold 14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(gammaPercent.toFixed(0), gaugeX, gaugeY + 5);
+        } catch (e) {
+          console.error('Error drawing gamma chart main:', e);
+        }
+      }
+
+      function drawGammaDetailChartMain(gammaScore) {
+        try {
+          const canvas = document.getElementById('gamma-detail-chart-main');
+          if (!canvas) return;
+          const chartContext = getChartContext('gamma-detail-chart-main', 200);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
+
+          const score = Number(gammaScore || 50);
+          let rating = 'C';
+          let ratingColor = '#fbbf24';
+          if (score >= 80) { rating = 'A+'; ratingColor = '#22c55e'; }
+          else if (score >= 68) { rating = 'A'; ratingColor = '#22c55e'; }
+          else if (score >= 58) { rating = 'B'; ratingColor = '#3b82f6'; }
+          else if (score >= 46) { rating = 'C'; ratingColor = '#fbbf24'; }
+          else if (score >= 34) { rating = 'D'; ratingColor = '#f87171'; }
+          else { rating = 'F'; ratingColor = '#f87171'; }
+
+          const boxX = width / 2 - 50;
+          const boxY = height / 2 - 35;
+          const boxWidth = 100;
+          const boxHeight = 70;
+
+          ctx.strokeStyle = ratingColor;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+          ctx.fillStyle = ratingColor;
+          ctx.font = 'bold 32px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(rating, width / 2, boxY + boxHeight / 2);
+        } catch (e) {
+          console.error('Error drawing gamma detail chart main:', e);
+        }
+      }
+
+      function drawDeltaChartMain(deltaPosition, hedgeRatio) {
+        try {
+          const canvas = document.getElementById('delta-chart-main');
+          if (!canvas) return;
+          const chartContext = getChartContext('delta-chart-main', 200);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
+
+          const barX = 30;
+          const barY = height / 2 - 25;
+          const barWidth = width - 60;
+          const barHeight = 35;
+
+          ctx.fillStyle = '#22344d';
+          ctx.fillRect(barX, barY, barWidth, barHeight);
+
+          const deltaPercent = Math.max(0, Math.min(1, Number(deltaPosition || 0.5)));
+          ctx.fillStyle = deltaPercent > 0.5 ? '#22c55e' : deltaPercent < 0.5 ? '#f87171' : '#fbbf24';
+          ctx.fillRect(barX, barY, barWidth * deltaPercent, barHeight);
+
+          ctx.strokeStyle = '#d5f3ec';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+          ctx.fillStyle = '#f4f7fb';
+          ctx.font = 'bold 11px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`${(deltaPercent * 100).toFixed(0)}%`, width / 2, barY + barHeight / 2);
+        } catch (e) {
+          console.error('Error drawing delta chart main:', e);
+        }
+      }
+
+      function drawHedgeChartMain(hedgeEffectiveness) {
+        try {
+          const canvas = document.getElementById('hedge-chart-main');
+          if (!canvas) return;
+          const chartContext = getChartContext('hedge-chart-main', 200);
+          if (!chartContext) return;
+          const { ctx, width, height } = chartContext;
+          ctx.fillStyle = '#08111c';
+          ctx.fillRect(0, 0, width, height);
+
+          const effectiveness = Math.max(0.5, Math.min(1.0, Number(hedgeEffectiveness || 0.7)));
+          const bars = [
+            { value: effectiveness, color: '#22c55e' },
+            { value: effectiveness * 0.85, color: '#3b82f6' },
+            { value: effectiveness * 0.95, color: '#fbbf24' },
+          ];
+
+          const barWidth = (width - 40) / bars.length;
+          const maxHeight = 80;
+
+          bars.forEach((bar, index) => {
+            const x = 20 + index * barWidth + barWidth * 0.1;
+            const barHeight = (bar.value / 1) * maxHeight;
+            const y = height - 25 - barHeight;
+
+            ctx.fillStyle = bar.color;
+            ctx.fillRect(x, y, barWidth * 0.8, barHeight);
+
+            ctx.strokeStyle = '#d5f3ec';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, barWidth * 0.8, barHeight);
+          });
+        } catch (e) {
+          console.error('Error drawing hedge chart main:', e);
         }
       }
 
