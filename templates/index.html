@@ -511,8 +511,6 @@
           <button id="view-core" class="view-tab active" onclick="setChartView('core')">Core</button>
           <button id="view-levels" class="view-tab" onclick="setChartView('levels')">Levels</button>
           <button id="view-outlook" class="view-tab" onclick="setChartView('outlook')">Outlook</button>
-          <button id="view-gamma" class="view-tab" onclick="setChartView('gamma')">Gamma</button>
-          <button id="view-delta" class="view-tab" onclick="setChartView('delta')">Delta</button>
           <button id="view-all" class="view-tab" onclick="setChartView('all')">All</button>
         </div>
         <div class="range-tabs" role="tablist" aria-label="Core chart range">
@@ -556,24 +554,6 @@
           <div class="metric-card chart-card" data-view="outlook" onclick="openChartModal('Scenario outlook', 'scenario-chart')">
             <div class="chart-topline"><div class="section-title">Scenario outlook</div><div class="chart-chip">Deep</div></div>
             <div class="chart-wrap"><canvas id="scenario-chart"></canvas></div>
-          </div>
-          <div class="metric-card chart-card" data-view="gamma" onclick="openChartModal('Gamma exposure', 'gamma-chart')">
-            <div class="chart-topline"><div class="section-title">Gamma exposure</div><div class="chart-chip">Greeks</div></div>
-            <div class="chart-wrap"><canvas id="gamma-chart"></canvas></div>
-            <div id="gamma-value-strip" class="value-strip">Gamma Score -- | Exposure -- | Regime --</div>
-          </div>
-          <div class="metric-card chart-card" data-view="gamma" onclick="openChartModal('Gamma rating detail', 'gamma-detail-chart')">
-            <div class="chart-topline"><div class="section-title">Gamma rating detail</div><div class="chart-chip">Greeks</div></div>
-            <div class="chart-wrap"><canvas id="gamma-detail-chart"></canvas></div>
-          </div>
-          <div class="metric-card chart-card" data-view="delta" onclick="openChartModal('Delta hedging', 'delta-chart')">
-            <div class="chart-topline"><div class="section-title">Delta hedging</div><div class="chart-chip">Greeks</div></div>
-            <div class="chart-wrap"><canvas id="delta-chart"></canvas></div>
-            <div id="delta-value-strip" class="value-strip">Delta Position -- | Hedge Ratio -- | Regime --</div>
-          </div>
-          <div class="metric-card chart-card" data-view="delta" onclick="openChartModal('Hedge effectiveness', 'hedge-chart')">
-            <div class="chart-topline"><div class="section-title">Hedge effectiveness</div><div class="chart-chip">Greeks</div></div>
-            <div class="chart-wrap"><canvas id="hedge-chart"></canvas></div>
           </div>
         </div>
       </div>
@@ -735,10 +715,6 @@
         drawRegimeChart(latestChartState.score, latestChartState.direction);
         drawSupportChart(latestChartState.currentPrice);
         drawScenarioChart(latestChartState.score);
-        drawGammaChart(latestChartState.gammaScore, latestChartState.gammaExposure);
-        drawGammaDetailChart(latestChartState.gammaScore);
-        drawDeltaChart(latestChartState.deltaPosition, latestChartState.hedgeRatio);
-        drawHedgeChart(latestChartState.hedgeEffectiveness);
         drawGammaChartMain(latestChartState.gammaScore, latestChartState.gammaExposure);
         drawGammaDetailChartMain(latestChartState.gammaScore);
         drawDeltaChartMain(latestChartState.deltaPosition, latestChartState.hedgeRatio);
@@ -755,12 +731,10 @@
       }
 
       function setChartView(view) {
-        chartView = ['core', 'levels', 'outlook', 'gamma', 'delta', 'all'].includes(view) ? view : 'core';
+        chartView = ['core', 'levels', 'outlook', 'all'].includes(view) ? view : 'core';
         document.getElementById('view-core').classList.toggle('active', chartView === 'core');
         document.getElementById('view-levels').classList.toggle('active', chartView === 'levels');
         document.getElementById('view-outlook').classList.toggle('active', chartView === 'outlook');
-        document.getElementById('view-gamma').classList.toggle('active', chartView === 'gamma');
-        document.getElementById('view-delta').classList.toggle('active', chartView === 'delta');
         document.getElementById('view-all').classList.toggle('active', chartView === 'all');
 
         document.querySelectorAll('.chart-card').forEach((card) => {
@@ -818,22 +792,10 @@
           priceStrip.textContent = `Now ${formatNumber(priceNow, digits)} (${toPercent(priceChangePct, 2)}) | High ${formatNumber(priceHigh, digits)} | Low ${formatNumber(priceLow, digits)} | Updated ${priceTs}`;
         }
 
-        // Update gamma value strip
-        const gammaStrip = document.getElementById('gamma-value-strip');
-        if (gammaStrip) {
-          gammaStrip.textContent = `Gamma Score ${formatNumber(latestChartState.gammaScore, 0)} | Exposure ${latestChartState.gammaExposure.toUpperCase()} | Regime --`;
-        }
-
         // Update gamma value strip (main page)
         const gammaStripMain = document.getElementById('gamma-value-strip-main');
         if (gammaStripMain) {
           gammaStripMain.textContent = `Score ${formatNumber(latestChartState.gammaScore, 0)} | Exposure ${latestChartState.gammaExposure.toUpperCase()}`;
-        }
-
-        // Update delta value strip
-        const deltaStrip = document.getElementById('delta-value-strip');
-        if (deltaStrip) {
-          deltaStrip.textContent = `Delta Position ${toPercent(latestChartState.deltaPosition, 0)} | Hedge Ratio ${toPercent(latestChartState.hedgeRatio, 0)} | Effectiveness ${toPercent(latestChartState.hedgeEffectiveness, 0)}`;
         }
 
         // Update delta value strip (main page)
