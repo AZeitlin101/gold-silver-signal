@@ -589,39 +589,48 @@
         </div>
       </div>
 
-      <div class="grid-2">
-        <div class="card">
-          <div class="section-title">Gamma Exposure</div>
-          <div class="small">Dealer gamma positioning and regime implications</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-            <div class="metric-card chart-card">
-              <div class="chart-topline"><div class="section-title">Gamma score</div></div>
-              <div class="chart-wrap"><canvas id="gamma-chart-main"></canvas></div>
-              <div id="gamma-value-strip-main" class="value-strip" style="margin-top: 0.5rem;">Score -- | Exposure --</div>
-            </div>
-            <div class="metric-card chart-card">
-              <div class="chart-topline"><div class="section-title">Rating</div></div>
-              <div class="chart-wrap"><canvas id="gamma-detail-chart-main"></canvas></div>
-              <div id="gamma-rating-explanation" class="small" style="margin-top: 0.6rem; padding: 0.6rem; background: rgba(213, 243, 236, 0.05); border-radius: 8px; color: #b0dbd0; line-height: 1.4;">Rating explanation loading…</div>
-            </div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2rem; margin-bottom: 1.5rem;">
+        <div>
+          <div class="small" style="color: #7c8ba4; margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">Gamma Exposure</div>
+          <div class="metric-card chart-card">
+            <div class="chart-topline"><div class="section-title" style="font-size: 0.95rem;">Gamma score</div></div>
+            <div class="chart-wrap"><canvas id="gamma-chart-main"></canvas></div>
+            <div id="gamma-value-strip-main" class="value-strip" style="margin-top: 0.5rem; font-size: 0.85rem;">Score -- | Exposure --</div>
           </div>
-          <div id="gamma-context" style="margin-top: 1rem; padding: 0.8rem; background: rgba(30, 58, 95, 0.15); border-radius: 10px; color: #d5f3ec; font-size: 0.9rem;">Gamma regime context loading…</div>
         </div>
-        <div class="card">
-          <div class="section-title">Delta Hedging</div>
-          <div class="small">Position delta and hedge effectiveness metrics</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-            <div class="metric-card chart-card">
-              <div class="chart-topline"><div class="section-title">Delta position</div></div>
-              <div class="chart-wrap"><canvas id="delta-chart-main"></canvas></div>
-              <div id="delta-value-strip-main" class="value-strip" style="margin-top: 0.5rem;">Delta -- | Hedge --</div>
-            </div>
-            <div class="metric-card chart-card">
-              <div class="chart-topline"><div class="section-title">Hedge quality</div></div>
-              <div class="chart-wrap"><canvas id="hedge-chart-main"></canvas></div>
-            </div>
+        <div>
+          <div class="small" style="color: #7c8ba4; margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">Gamma Exposure</div>
+          <div class="metric-card chart-card">
+            <div class="chart-topline"><div class="section-title" style="font-size: 0.95rem;">Rating</div></div>
+            <div class="chart-wrap"><canvas id="gamma-detail-chart-main"></canvas></div>
+            <div id="gamma-rating-explanation" class="small" style="margin-top: 0.6rem; padding: 0.6rem; background: rgba(213, 243, 236, 0.05); border-radius: 8px; color: #b0dbd0; line-height: 1.4; font-size: 0.8rem;">Rating explanation loading…</div>
           </div>
-          <div id="delta-context" style="margin-top: 1rem; padding: 0.8rem; background: rgba(30, 58, 95, 0.15); border-radius: 10px; color: #d5f3ec; font-size: 0.9rem;">Delta hedge context loading…</div>
+        </div>
+        <div>
+          <div class="small" style="color: #7c8ba4; margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">Delta Hedging</div>
+          <div class="metric-card chart-card">
+            <div class="chart-topline"><div class="section-title" style="font-size: 0.95rem;">Delta position</div></div>
+            <div class="chart-wrap"><canvas id="delta-chart-main"></canvas></div>
+            <div id="delta-value-strip-main" class="value-strip" style="margin-top: 0.5rem; font-size: 0.85rem;">Delta -- | Hedge --</div>
+          </div>
+        </div>
+        <div>
+          <div class="small" style="color: #7c8ba4; margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">Delta Hedging</div>
+          <div class="metric-card chart-card">
+            <div class="chart-topline"><div class="section-title" style="font-size: 0.95rem;">Hedge quality</div></div>
+            <div class="chart-wrap"><canvas id="hedge-chart-main"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 1.5rem;">
+        <div id="gamma-context" style="padding: 0.8rem; background: rgba(30, 58, 95, 0.15); border-radius: 10px; color: #d5f3ec; font-size: 0.9rem; border-left: 3px solid #4a7c59;">
+          <div class="small" style="color: #7c8ba4; margin-bottom: 0.4rem; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">Gamma Regime</div>
+          Gamma regime context loading…
+        </div>
+        <div id="delta-context" style="padding: 0.8rem; background: rgba(30, 58, 95, 0.15); border-radius: 10px; color: #d5f3ec; font-size: 0.9rem; border-left: 3px solid #6b8fb9;">
+          <div class="small" style="color: #7c8ba4; margin-bottom: 0.4rem; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">Delta Hedge Regime</div>
+          Delta hedge context loading…
         </div>
       </div>
 
