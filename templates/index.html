@@ -665,8 +665,8 @@
       let chartRange = '1d';
       let chartView = 'all';
       let settingsByMetal = {
-        gold: { weights: { technical: 0.35, macro: 0.30, news: 0.35 }, thresholds: { bullish: 65, bearish: 35 } },
-        silver: { weights: { technical: 0.35, macro: 0.30, news: 0.35 }, thresholds: { bullish: 65, bearish: 35 } },
+        gold: {},
+        silver: {},
       };
       let latestAnalysisCards = [];
       let latestChartState = { technical: 50, macro: 50, news: 50, score: 50, direction: 'neutral', currentPrice: 2330, gammaScore: 50, gammaExposure: 'neutral', deltaPosition: 0.5, hedgeRatio: 0.5, hedgeEffectiveness: 0.7 };
@@ -847,6 +847,21 @@
         return metal === 'silver' ? 'Silver' : 'Gold';
       }
 
+      async function loadSettingsForMetal(metal) {
+        try {
+          const res = await fetch(`/settings?metal=${encodeURIComponent(metal)}`);
+          const data = await res.json();
+          if (data.settings && typeof data.settings === 'object') {
+            const target = metal === 'silver' ? 'silver' : 'gold';
+            settingsByMetal[target] = data.settings;
+            applySettingsToForm(target);
+          }
+        } catch (e) {
+          console.error('Error loading settings for metal:', e);
+          applySettingsToForm(metal);
+        }
+      }
+
       function applySettingsToForm(metal) {
         const target = metal === 'silver' ? 'silver' : 'gold';
         const settings = settingsByMetal[target] || settingsByMetal.gold;
@@ -869,7 +884,7 @@
         document.getElementById('app-lead').textContent = `A clearer view of ${metalName.toLowerCase()}'s current technical, macro, and news bias.`;
         document.getElementById('price-card-title').textContent = `${metalName} price`;
         document.getElementById('settings-scope').textContent = `Editing ${metalName} settings`;
-        applySettingsToForm(currentMetal);
+        loadSettingsForMetal(currentMetal);
 
         signalHistory = [50, 51, 54, 56, 58];
         priceHistory = currentMetal === 'silver'
@@ -1304,11 +1319,6 @@
         const payloadMetal = data.metal === 'silver' ? 'silver' : 'gold';
         if (payloadMetal !== currentMetal) {
           currentMetal = payloadMetal;
-        }
-
-        if (data.settings && typeof data.settings === 'object') {
-          settingsByMetal[currentMetal] = data.settings;
-          applySettingsToForm(currentMetal);
         }
 
         const score = Number(data.composite_score ?? 50);

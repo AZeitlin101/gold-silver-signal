@@ -6,7 +6,7 @@ import math
 import os
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query, Body
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -26,7 +26,7 @@ try:
 except ImportError:  # pragma: no cover - fallback for local runs
     config = None
 
-app = FastAPI(title="Gold Signal API")
+app = FastAPI(title="Gold Signal API", redirect_slashes=False)
 
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
 INDEX_HTML = TEMPLATE_DIR / "index.html"
@@ -546,7 +546,8 @@ def get_signal(metal: str = "gold"):
             lookback_hours=cfg["NEWS_LOOKBACK_HOURS"],
             max_headlines=cfg["MAX_HEADLINES_TO_SCORE"],
         )
-    except Exception:
+    except Exception as e:
+        print(f"[API Error] Failed to fetch live data: {type(e).__name__}: {str(e)[:100]}")
         fallback = _build_demo_signal(target_metal)
         fallback["settings"] = metal_settings
         if should_alert(fallback, metal_settings["thresholds"]):
@@ -614,8 +615,16 @@ def get_calendar(metal: str = "gold"):
     return {"metal": target_metal, "economic_calendar": _build_economic_calendar(target_metal)}
 
 
+@app.get("/settings")
+def get_settings(metal: str = Query("gold")):
+    """Get the current settings for a specific metal."""
+    target_metal = _normalize_metal(metal)
+    metal_settings = _get_metal_settings(target_metal)
+    return {"ok": True, "metal": target_metal, "settings": metal_settings}
+
+
 @app.post("/settings")
-def update_settings(payload: dict, metal: str = "gold"):
+def post_settings(payload: dict = Body(...), metal: str = Query("gold")):
     """Update the dashboard weights and alert thresholds."""
     target_metal = _normalize_metal(metal)
     metal_settings = _get_metal_settings(target_metal)
