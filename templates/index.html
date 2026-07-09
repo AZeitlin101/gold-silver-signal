@@ -577,6 +577,11 @@
             <div id="signal-tooltip" class="chart-tooltip"></div>
             <div id="signal-value-strip" class="value-strip">Now -- | High -- | Low --</div>
           </div>
+          <div class="metric-card chart-card" data-view="core" onclick="openChartModal('50/200 EMA Crossover', 'ema-chart')">
+            <div class="chart-topline"><div class="section-title">50/200 EMA Crossover</div><div class="chart-chip">Core</div></div>
+            <div class="chart-wrap"><canvas id="ema-chart"></canvas></div>
+            <div id="ema-status" class="value-strip" style="font-size: 0.85rem;">Calculating EMAs...</div>
+          </div>
           <div class="metric-card chart-card" data-view="core" onclick="openChartModal('Momentum / RSI', 'momentum-chart')">
             <div class="chart-topline"><div class="section-title">Momentum / RSI</div><div class="chart-chip">Core</div></div>
             <div class="chart-wrap"><canvas id="momentum-chart"></canvas></div>
@@ -770,6 +775,7 @@
         const visiblePrice = getVisibleSeries(priceHistory, priceTimestamps);
         drawPriceChart(visiblePrice.values, visiblePrice.timestamps);
         drawSignalHistoryChart(visibleScore.values, visibleScore.timestamps);
+        drawEMAChart(priceHistory);
         drawMomentumChart(latestChartState.score, latestChartState.direction, signalHistory);
         drawDriverChart(latestChartState.technical, latestChartState.macro, latestChartState.news, latestChartState.score);
         drawRegimeChart(latestChartState.score, latestChartState.direction);
@@ -944,6 +950,7 @@
         const legends = {
           'price-chart': [`${getMetalDisplayName(currentMetal)} price`, 'Price trend'],
           'signal-chart': ['Signal score', 'Bullish / bearish trend'],
+          'ema-chart': ['50-day EMA', '200-day EMA', 'Current price'],
           'momentum-chart': ['Momentum', 'RSI-like reading'],
           'driver-chart': ['Technical', 'Macro', 'News', 'Composite'],
           'regime-chart': ['Bullish', 'Neutral', 'Bearish'],
@@ -2182,6 +2189,174 @@
 
         bindTooltip('signal-chart', 'signal-tooltip', () => latestSignalPlot, () => 1, 'Score ');
         bindTooltip('price-chart', 'price-tooltip', () => latestPricePlot, () => currentMetal === 'silver' ? 2 : 1, 'Price ');
+      }
+
+      function calculateEMA(prices, period) {
+        if (!prices || prices.length < period) return [];
+        const ema = [];
+        const multiplier = 2 / (period + 1);
+        
+        // Calculate SMA for first period
+        let sum = 0;
+        for (let i = 0; i < period; i++) {
+          sum += prices[i];
+        }
+        ema.push(sum / period);
+        
+        // Calculate EMA for remaining prices
+        for (let i = period; i < prices.length; i++) {
+          const newEMA = (prices[i] - ema[ema.length - 1]) * multiplier + ema[ema.length - 1];
+          ema.push(newEMA);
+        }
+        
+        // Pad with nulls at the start
+        return Array(period - 1).fill(null).concat(ema);
+      }
+
+      function drawEMAChart(prices) {
+        const chartContext = getChartContext('ema-chart', 230);
+        if (!chartContext || !prices || prices.length < 50) {
+          document.getElementById('ema-status').innerHTML = 'Insufficient price data';
+          return;
+        }
+        
+        const { ctx, width, height } = chartContext;
+        ctx.fillStyle = '#08111c';
+        ctx.fillRect(0, 0, width, height);
+
+        const ema50 = calculateEMA(prices, 50);
+        const ema200 = calculateEMA(prices, 200);
+        
+        // Find min/max for scaling
+        const validPrices = prices.filter(p => p !== null && p !== undefined && !Number.isNaN(p));
+        if (validPrices.length === 0) {
+          document.getElementById('ema-status').innerHTML = 'No price data';
+          return;
+        }
+        
+        const minPrice = Math.min(...validPrices);
+        const maxPrice = Math.max(...validPrices);
+        const priceRange = maxPrice - minPrice || 1;
+        const padding = priceRange * 0.1;
+        const scaledMin = minPrice - padding;
+        const scaledMax = maxPrice + padding;
+        const scaledRange = scaledMax - scaledMin;
+        
+        const toY = (price) => {
+          if (price === null || price === undefined) return null;
+          return height - 30 - ((price - scaledMin) / scaledRange) * (height - 60);
+        };
+        
+        const toX = (index) => (index / (prices.length - 1)) * (width - 40) + 20;
+        
+        // Draw grid lines
+        ctx.strokeStyle = '#1e3a5f';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 4; i++) {
+          const y = 30 + (i / 3) * (height - 60);
+          ctx.beginPath();
+          ctx.moveTo(20, y);
+          ctx.lineTo(width - 20, y);
+          ctx.stroke();
+        }
+        
+        // Draw 200 EMA (slower, thinner line)
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i < prices.length; i++) {
+          const y = toY(ema200[i]);
+          if (y !== null) {
+            if (i === 0 || ema200[i-1] === null) {
+              ctx.moveTo(toX(i), y);
+            } else {
+              ctx.lineTo(toX(i), y);
+            }
+          }
+        }
+        ctx.stroke();
+        
+        // Draw 50 EMA (faster, thicker line)
+        ctx.strokeStyle = '#2dd4bf';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        for (let i = 0; i < prices.length; i++) {
+          const y = toY(ema50[i]);
+          if (y !== null) {
+            if (i === 0 || ema50[i-1] === null) {
+              ctx.moveTo(toX(i), y);
+            } else {
+              ctx.lineTo(toX(i), y);
+            }
+          }
+        }
+        ctx.stroke();
+        
+        // Draw current price line
+        const currentPrice = prices[prices.length - 1];
+        const currentY = toY(currentPrice);
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(toX(prices.length - 1), currentY);
+        ctx.lineTo(width - 20, currentY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Detect crossover status
+        let crossoverStatus = 'neutral';
+        let crossoverMessage = 'EMAs apart';
+        
+        if (ema50.length > 1 && ema200.length > 1) {
+          const ema50Current = ema50[ema50.length - 1];
+          const ema50Prev = ema50[ema50.length - 2];
+          const ema200Current = ema200[ema200.length - 1];
+          const ema200Prev = ema200[ema200.length - 2];
+          
+          if (ema50Current > ema200Current) {
+            crossoverStatus = 'bullish';
+            if (ema50Prev <= ema200Prev) {
+              crossoverMessage = '✓ GOLDEN CROSS! 50 EMA crossed above 200';
+            } else {
+              const distance = (((ema50Current - ema200Current) / ema200Current) * 100).toFixed(2);
+              crossoverMessage = `✓ Bullish | 50 above 200 (+${distance}%)`;
+            }
+          } else if (ema50Current < ema200Current) {
+            crossoverStatus = 'bearish';
+            if (ema50Prev >= ema200Prev) {
+              crossoverMessage = '✗ DEATH CROSS! 50 EMA crossed below 200';
+            } else {
+              const distance = (((ema200Current - ema50Current) / ema200Current) * 100).toFixed(2);
+              crossoverMessage = `✗ Bearish | 50 below 200 (-${distance}%)`;
+            }
+          } else {
+            crossoverMessage = '= EMAs converging';
+          }
+        }
+        
+        // Display status
+        const statusColor = crossoverStatus === 'bullish' ? '#22c55e' : crossoverStatus === 'bearish' ? '#f87171' : '#fbbf24';
+        document.getElementById('ema-status').innerHTML = `<span style="color: ${statusColor}; font-weight: bold;">${crossoverMessage}</span>`;
+        
+        // Draw labels
+        ctx.fillStyle = '#f4f7fb';
+        ctx.font = '11px Arial';
+        ctx.fillText('Price', width - 60, 20);
+        
+        // Draw recent EMA values
+        if (ema50.length > 0) {
+          const lastEMA50 = ema50[ema50.length - 1];
+          ctx.fillStyle = '#2dd4bf';
+          ctx.fillText(`50: ${lastEMA50.toFixed(currentMetal === 'silver' ? 2 : 0)}`, 25, height - 12);
+        }
+        if (ema200.length > 0) {
+          const lastEMA200 = ema200[ema200.length - 1];
+          ctx.fillStyle = '#f59e0b';
+          ctx.fillText(`200: ${lastEMA200.toFixed(currentMetal === 'silver' ? 2 : 0)}`, 25 + 120, height - 12);
+        }
+        ctx.fillStyle = '#e5e7eb';
+        ctx.fillText(`Now: ${currentPrice.toFixed(currentMetal === 'silver' ? 2 : 0)}`, 25 + 240, height - 12);
       }
 
       function drawMomentumChart(score, direction, history) {
