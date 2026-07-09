@@ -889,6 +889,8 @@ def get_signal(metal: str = "gold"):
     if not cfg.get("GOLD_API_KEY") or not cfg.get("FRED_API_KEY") or not cfg.get("NEWS_API_KEY"):
         sample_prices = get_sample_history()
         demo_signal = _build_demo_signal(target_metal)
+        # Use sample prices for demo mode
+        demo_signal["price_history"] = sample_prices
         demo_signal.update(generate_signal(sample_prices, metal_settings["weights"], macro={"macro_score": 58}, news={"news_score": 64}))
         demo_signal = build_extended_signal(
             demo_signal,
