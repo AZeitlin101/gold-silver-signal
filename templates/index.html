@@ -2419,7 +2419,8 @@
         document.getElementById('ema-status').innerHTML = `<span style="color: ${statusColor}; font-weight: bold;">${crossoverMessage}</span>`;
         
         // Update chart title to reflect actual EMA periods
-        const titleElement = document.querySelector('[onclick*="ema-chart"]')?.querySelector('.section-title');
+        const chartCard = document.getElementById('ema-chart')?.closest('.chart-card');
+        const titleElement = chartCard?.querySelector('.section-title');
         if (titleElement) {
           titleElement.textContent = `${period1}/${period2} EMA Crossover`;
         }
