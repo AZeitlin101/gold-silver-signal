@@ -577,10 +577,6 @@
             <div id="signal-tooltip" class="chart-tooltip"></div>
             <div id="signal-value-strip" class="value-strip">Now -- | High -- | Low --</div>
           </div>
-          <div class="metric-card chart-card" data-view="core" onclick="openChartModal('Component mix', 'component-chart')">
-            <div class="chart-topline"><div class="section-title">Component mix</div><div class="chart-chip">Core</div></div>
-            <div class="chart-wrap"><canvas id="component-chart"></canvas></div>
-          </div>
           <div class="metric-card chart-card" data-view="core" onclick="openChartModal('Momentum / RSI', 'momentum-chart')">
             <div class="chart-topline"><div class="section-title">Momentum / RSI</div><div class="chart-chip">Core</div></div>
             <div class="chart-wrap"><canvas id="momentum-chart"></canvas></div>
@@ -596,10 +592,6 @@
           <div class="metric-card chart-card" data-view="levels" onclick="openChartModal('Support / resistance', 'support-chart')">
             <div class="chart-topline"><div class="section-title">Support / resistance</div><div class="chart-chip">Deep</div></div>
             <div class="chart-wrap"><canvas id="support-chart"></canvas></div>
-          </div>
-          <div class="metric-card chart-card" data-view="outlook" onclick="openChartModal('Scenario outlook', 'scenario-chart')">
-            <div class="chart-topline"><div class="section-title">Scenario outlook</div><div class="chart-chip">Deep</div></div>
-            <div class="chart-wrap"><canvas id="scenario-chart"></canvas></div>
           </div>
         </div>
       </div>
@@ -681,16 +673,6 @@
             <button onclick="saveSettings()">Save settings</button>
           </div>
           <div id="settings-output" class="small" style="margin-top: 0.7rem;"></div>
-        </div>
-        <div class="card">
-          <div class="section-title">Trading journal</div>
-          <div class="journal-row">
-            <div><label class="small">Action</label><br /><input id="journal-action" placeholder="Action" /></div>
-            <div><label class="small">Reason</label><br /><input id="journal-reason" placeholder="Reason" /></div>
-            <div><label class="small">Price</label><br /><input id="journal-price" placeholder="Price" /></div>
-            <button onclick="saveJournalEntry()">Save</button>
-          </div>
-          <div id="journal-output" class="small" style="margin-top: 0.7rem;"></div>
         </div>
       </div>
     </div>
@@ -788,12 +770,10 @@
         const visiblePrice = getVisibleSeries(priceHistory, priceTimestamps);
         drawPriceChart(visiblePrice.values, visiblePrice.timestamps);
         drawSignalHistoryChart(visibleScore.values, visibleScore.timestamps);
-        drawComponentChart(latestChartState.technical, latestChartState.macro, latestChartState.news);
         drawMomentumChart(latestChartState.score, latestChartState.direction, signalHistory);
         drawDriverChart(latestChartState.technical, latestChartState.macro, latestChartState.news, latestChartState.score);
         drawRegimeChart(latestChartState.score, latestChartState.direction);
         drawSupportChart(latestChartState.currentPrice);
-        drawScenarioChart(latestChartState.score);
         drawGammaChartMain(latestChartState.gammaScore, latestChartState.gammaExposure);
         drawGammaDetailChartMain(latestChartState.gammaScore);
         updateGammaRatingExplanation(latestChartState.gammaScore);
@@ -1981,22 +1961,6 @@
         loadSignal();
       }
 
-      async function saveJournalEntry() {
-        const payload = {
-          timestamp: new Date().toISOString(),
-          action: document.getElementById('journal-action').value,
-          reason: document.getElementById('journal-reason').value,
-          price: document.getElementById('journal-price').value,
-        };
-        const res = await fetch('/journal', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        document.getElementById('journal-output').innerHTML = `Saved ${data.entries.length} entries.`;
-      }
-
       function drawSignalHistoryChart(history, timestamps = []) {
         const chartContext = getChartContext('signal-chart', 230);
         if (!chartContext) return;
@@ -2219,33 +2183,6 @@
 
         bindTooltip('signal-chart', 'signal-tooltip', () => latestSignalPlot, () => 1, 'Score ');
         bindTooltip('price-chart', 'price-tooltip', () => latestPricePlot, () => currentMetal === 'silver' ? 2 : 1, 'Price ');
-      }
-
-      function drawComponentChart(technical, macro, news) {
-        const chartContext = getChartContext('component-chart', 230);
-        if (!chartContext) return;
-        const { ctx, width, height } = chartContext;
-        ctx.fillStyle = '#08111c';
-        ctx.fillRect(0, 0, width, height);
-
-        const values = [technical, macro, news];
-        const labels = ['Technical', 'Macro', 'News'];
-        const colors = ['#2dd4bf', '#3b82f6', '#f59e0b'];
-        const barWidth = 60;
-        const gap = 30;
-        const left = (width - (barWidth * 3 + gap * 2)) / 2;
-
-        values.forEach((value, index) => {
-          const barHeight = (value / 100) * 140;
-          const x = left + index * (barWidth + gap);
-          const y = height - 30 - barHeight;
-          ctx.fillStyle = colors[index];
-          ctx.fillRect(x, y, barWidth, barHeight);
-          ctx.fillStyle = '#f4f7fb';
-          ctx.font = '12px Arial';
-          ctx.fillText(labels[index], x + 8, height - 10);
-          ctx.fillText(`${value.toFixed(0)}`, x + 16, y - 8);
-        });
       }
 
       function drawMomentumChart(score, direction, history) {
@@ -2562,49 +2499,6 @@
         ctx.fillText(`R ${resistance.toFixed(currentMetal === 'silver' ? 2 : 1)}  |  +${Math.max(0, upPct).toFixed(2)}%`, left + 4, Math.max(top + 12, resistanceY - 6));
         ctx.fillText(`S ${support.toFixed(currentMetal === 'silver' ? 2 : 1)}  |  -${Math.max(0, downPct).toFixed(2)}%`, left + 4, Math.min(bottom - 4, supportY + 13));
         ctx.fillText(`Now ${currentPrice.toFixed(currentMetal === 'silver' ? 2 : 1)}`, left + 4, Math.max(top + 26, currentY - 6));
-      }
-
-      function drawScenarioChart(score) {
-        const chartContext = getChartContext('scenario-chart', 230);
-        if (!chartContext) return;
-        const { ctx, width, height } = chartContext;
-        ctx.fillStyle = '#08111c';
-        ctx.fillRect(0, 0, width, height);
-
-        const bull = Math.min(100, score + 10);
-        const base = score;
-        const bear = Math.max(0, score - 10);
-        const path = [
-          { x: 48, bull, base, bear },
-          { x: 108, bull: Math.min(100, bull + 2), base: base, bear: Math.max(0, bear - 2) },
-          { x: 168, bull: Math.min(100, bull + 4), base: Math.max(0, base - 1), bear: Math.max(0, bear - 4) },
-          { x: 228, bull: Math.min(100, bull + 6), base: Math.max(0, base - 2), bear: Math.max(0, bear - 6) },
-          { x: 282, bull: Math.min(100, bull + 8), base: Math.max(0, base - 3), bear: Math.max(0, bear - 8) },
-        ];
-
-        const toY = (value) => height - 22 - (value / 100) * 150;
-        const drawLine = (seriesKey, color) => {
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          path.forEach((point, index) => {
-            const y = toY(point[seriesKey]);
-            if (index === 0) ctx.moveTo(point.x, y);
-            else ctx.lineTo(point.x, y);
-          });
-          ctx.stroke();
-        };
-
-        drawLine('bull', '#22c55e');
-        drawLine('base', '#3b82f6');
-        drawLine('bear', '#f87171');
-
-        ctx.fillStyle = '#f4f7fb';
-        ctx.font = '11px Arial';
-        ctx.fillText(`Bull ${bull.toFixed(0)}`, 20, toY(path[0].bull) - 8);
-        ctx.fillText(`Base ${base.toFixed(0)}`, 20, toY(path[0].base) - 8);
-        ctx.fillText(`Bear ${bear.toFixed(0)}`, 20, toY(path[0].bear) - 8);
-        ctx.fillText('Forward confidence path', 154, 18);
       }
 
       function drawGauge(value) {
