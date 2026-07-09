@@ -2215,8 +2215,8 @@
 
       function drawEMAChart(prices) {
         const chartContext = getChartContext('ema-chart', 230);
-        if (!chartContext || !prices || prices.length < 10) {
-          document.getElementById('ema-status').innerHTML = 'Insufficient price data (need 10+ days)';
+        if (!chartContext || !prices || prices.length < 5) {
+          document.getElementById('ema-status').innerHTML = 'Insufficient price data (need 5+ prices)';
           return;
         }
         
@@ -2227,11 +2227,11 @@
         // Use appropriate EMA periods based on available data
         let period1, period2, label1, label2;
         if (prices.length < 50) {
-          // Live data with ~25 prices - use 10/20 day EMAs
-          period1 = 10;
-          period2 = 20;
-          label1 = '10-day EMA';
-          label2 = '20-day EMA';
+          // Live data with ~8-25 prices - use 3/5 day EMAs
+          period1 = 3;
+          period2 = 5;
+          label1 = '3-day EMA';
+          label2 = '5-day EMA';
         } else {
           // Historical data with 200+ prices - use 50/200 day EMAs
           period1 = 50;
