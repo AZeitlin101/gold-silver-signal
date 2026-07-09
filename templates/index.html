@@ -950,7 +950,7 @@
         const legends = {
           'price-chart': [`${getMetalDisplayName(currentMetal)} price`, 'Price trend'],
           'signal-chart': ['Signal score', 'Bullish / bearish trend'],
-          'ema-chart': ['50-day EMA', '200-day EMA', 'Current price'],
+          'ema-chart': ['Fast EMA', 'Slow EMA', 'Current price'],
           'momentum-chart': ['Momentum', 'RSI-like reading'],
           'driver-chart': ['Technical', 'Macro', 'News', 'Composite'],
           'regime-chart': ['Bullish', 'Neutral', 'Bearish'],
@@ -2215,8 +2215,8 @@
 
       function drawEMAChart(prices) {
         const chartContext = getChartContext('ema-chart', 230);
-        if (!chartContext || !prices || prices.length < 20) {
-          document.getElementById('ema-status').innerHTML = 'Insufficient price data (need 20+ days)';
+        if (!chartContext || !prices || prices.length < 10) {
+          document.getElementById('ema-status').innerHTML = 'Insufficient price data (need 10+ days)';
           return;
         }
         
@@ -2224,8 +2224,24 @@
         ctx.fillStyle = '#08111c';
         ctx.fillRect(0, 0, width, height);
 
-        const ema50 = calculateEMA(prices, 50);
-        const ema200 = calculateEMA(prices, 200);
+        // Use appropriate EMA periods based on available data
+        let period1, period2, label1, label2;
+        if (prices.length < 50) {
+          // Live data with ~25 prices - use 10/20 day EMAs
+          period1 = 10;
+          period2 = 20;
+          label1 = '10-day EMA';
+          label2 = '20-day EMA';
+        } else {
+          // Historical data with 200+ prices - use 50/200 day EMAs
+          period1 = 50;
+          period2 = 200;
+          label1 = '50-day EMA';
+          label2 = '200-day EMA';
+        }
+        
+        const ema1 = calculateEMA(prices, period1);
+        const ema2 = calculateEMA(prices, period2);
         
         // Find min/max for scaling
         const validPrices = prices.filter(p => p !== null && p !== undefined && !Number.isNaN(p));
@@ -2260,14 +2276,14 @@
           ctx.stroke();
         }
         
-        // Draw 200 EMA (slower, thinner line)
+        // Draw 200/long EMA (slower, thinner line)
         ctx.strokeStyle = '#f59e0b';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         for (let i = 0; i < prices.length; i++) {
-          const y = toY(ema200[i]);
+          const y = toY(ema2[i]);
           if (y !== null) {
-            if (i === 0 || ema200[i-1] === null) {
+            if (i === 0 || ema2[i-1] === null) {
               ctx.moveTo(toX(i), y);
             } else {
               ctx.lineTo(toX(i), y);
@@ -2276,14 +2292,14 @@
         }
         ctx.stroke();
         
-        // Draw 50 EMA (faster, thicker line)
+        // Draw 50/short EMA (faster, thicker line)
         ctx.strokeStyle = '#2dd4bf';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
         for (let i = 0; i < prices.length; i++) {
-          const y = toY(ema50[i]);
+          const y = toY(ema1[i]);
           if (y !== null) {
-            if (i === 0 || ema50[i-1] === null) {
+            if (i === 0 || ema1[i-1] === null) {
               ctx.moveTo(toX(i), y);
             } else {
               ctx.lineTo(toX(i), y);
@@ -2308,27 +2324,27 @@
         let crossoverStatus = 'neutral';
         let crossoverMessage = 'EMAs apart';
         
-        if (ema50.length > 1 && ema200.length > 1) {
-          const ema50Current = ema50[ema50.length - 1];
-          const ema50Prev = ema50[ema50.length - 2];
-          const ema200Current = ema200[ema200.length - 1];
-          const ema200Prev = ema200[ema200.length - 2];
+        if (ema1.length > 1 && ema2.length > 1) {
+          const ema1Current = ema1[ema1.length - 1];
+          const ema1Prev = ema1[ema1.length - 2];
+          const ema2Current = ema2[ema2.length - 1];
+          const ema2Prev = ema2[ema2.length - 2];
           
-          if (ema50Current > ema200Current) {
+          if (ema1Current > ema2Current) {
             crossoverStatus = 'bullish';
-            if (ema50Prev <= ema200Prev) {
-              crossoverMessage = '✓ GOLDEN CROSS! 50 EMA crossed above 200';
+            if (ema1Prev <= ema2Prev) {
+              crossoverMessage = `✓ BULLISH CROSS! ${label1} crossed above ${label2}`;
             } else {
-              const distance = (((ema50Current - ema200Current) / ema200Current) * 100).toFixed(2);
-              crossoverMessage = `✓ Bullish | 50 above 200 (+${distance}%)`;
+              const distance = (((ema1Current - ema2Current) / ema2Current) * 100).toFixed(2);
+              crossoverMessage = `✓ Bullish | Fast above slow (+${distance}%)`;
             }
-          } else if (ema50Current < ema200Current) {
+          } else if (ema1Current < ema2Current) {
             crossoverStatus = 'bearish';
-            if (ema50Prev >= ema200Prev) {
-              crossoverMessage = '✗ DEATH CROSS! 50 EMA crossed below 200';
+            if (ema1Prev >= ema2Prev) {
+              crossoverMessage = `✗ BEARISH CROSS! ${label1} crossed below ${label2}`;
             } else {
-              const distance = (((ema200Current - ema50Current) / ema200Current) * 100).toFixed(2);
-              crossoverMessage = `✗ Bearish | 50 below 200 (-${distance}%)`;
+              const distance = (((ema2Current - ema1Current) / ema2Current) * 100).toFixed(2);
+              crossoverMessage = `✗ Bearish | Fast below slow (-${distance}%)`;
             }
           } else {
             crossoverMessage = '= EMAs converging';
