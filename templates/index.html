@@ -989,7 +989,7 @@
         syncHistoryTimestamps();
         latestChartState.currentPrice = priceHistory[priceHistory.length - 1];
         setChartView(chartView);
-        renderAllCharts();
+        // Don't call renderAllCharts() here - loadSignal() will call it after fetching real data
         loadSignal();
       }
 
@@ -1406,6 +1406,10 @@
       }
 
       async function loadSignal() {
+        if (!window.__loadSignalCallCount) window.__loadSignalCallCount = 0;
+        window.__loadSignalCallCount++;
+        console.log(`[loadSignal] CALL #${window.__loadSignalCallCount} starting`);
+        
         const output = document.getElementById('signal-output');
         output.innerHTML = 'Loading…';
         const res = await fetch(`/signal?metal=${encodeURIComponent(currentMetal)}`);
@@ -1428,17 +1432,26 @@
 
         const incomingHistory = Array.isArray(data.price_history) ? data.price_history.filter((value) => value !== null && value !== undefined && !Number.isNaN(Number(value))).map(Number) : [];
         if (incomingHistory.length) {
+          console.log(`[loadSignal] Received ${incomingHistory.length} prices from API, will slice to 120`);
           priceHistory = incomingHistory.slice(-120);
+          console.log(`[loadSignal] After slice, priceHistory has ${priceHistory.length} items`);
+          console.log(`[loadSignal] priceHistory[0] = ${priceHistory[0]}, priceHistory[-1] = ${priceHistory[priceHistory.length-1]}`);
           const now = Date.now();
           priceTimestamps = priceHistory.map((_, index) => new Date(now - (priceHistory.length - index - 1) * 15 * 60 * 1000).toISOString());
+        } else {
+          console.log(`[loadSignal] No incoming price_history or empty after filtering`);
         }
 
         const currentPrice = Number(data.current_price || priceHistory[priceHistory.length - 1] || 2330);
         if (!Number.isNaN(currentPrice)) {
+          console.log(`[loadSignal] Adding current price ${currentPrice} to priceHistory (was ${priceHistory.length} items)`);
           priceHistory.push(currentPrice);
           priceTimestamps.push(new Date().toISOString());
-          if (priceHistory.length > 120) priceHistory.shift();
-          if (priceTimestamps.length > 120) priceTimestamps.shift();
+          if (priceHistory.length > 120) {
+            priceHistory.shift();
+            priceTimestamps.shift();
+          }
+          console.log(`[loadSignal] After adding current price, priceHistory has ${priceHistory.length} items`);
         }
 
         animateScore(score, direction, conviction, `${getMetalDisplayName(currentMetal)} · ${data.source || 'Demo'}`);
@@ -2285,6 +2298,9 @@
         ctx.fillStyle = '#08111c';
         ctx.fillRect(0, 0, width, height);
 
+        // Debug: Log actual price history length
+        console.log(`[EMA Chart] Price history length: ${prices.length}, will use`, prices.length < 50 ? '3/5' : '50/200', 'EMAs');
+
         // Use appropriate EMA periods based on available data
         let period1, period2, label1, label2;
         if (prices.length < 50) {
@@ -3124,9 +3140,9 @@
         clearEMA: () => { cache.emaCalcs = {}; }
       };
 
-      renderAllCharts();
+      // Don't render yet - wait for loadSignal() to load real data
       drawGauge(50);
-      loadSignal(); // Load signal data to populate price history
+      loadSignal(); // Load signal data to populate price history, then renderAllCharts
 
       // Debounced resize handler for better performance
       const handleResize = debounce(() => {
