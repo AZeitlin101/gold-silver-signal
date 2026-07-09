@@ -944,12 +944,10 @@
         const legends = {
           'price-chart': [`${getMetalDisplayName(currentMetal)} price`, 'Price trend'],
           'signal-chart': ['Signal score', 'Bullish / bearish trend'],
-          'component-chart': ['Technical', 'Macro', 'News'],
           'momentum-chart': ['Momentum', 'RSI-like reading'],
           'driver-chart': ['Technical', 'Macro', 'News', 'Composite'],
           'regime-chart': ['Bullish', 'Neutral', 'Bearish'],
           'support-chart': ['Support', 'Resistance', 'Current price'],
-          'scenario-chart': ['Bull case', 'Base case', 'Bear case'],
         };
         modalLegend.innerHTML = (legends[canvasId] || ['Current view']).map((item) => `
           <div class="legend-item"><span class="legend-swatch" style="background:${item.includes('Technical') ? '#2dd4bf' : item.includes('Macro') ? '#3b82f6' : item.includes('News') ? '#f59e0b' : item.includes('Signal') ? '#2dd4bf' : item.includes('Price') ? '#fbbf24' : '#f4f7fb'}"></span>${escapeHtml(item)}</div>
@@ -1914,6 +1912,7 @@
 
       async function loadBacktest() {
         const output = document.getElementById('backtest-output');
+        if (!output) return;
         output.innerHTML = 'Loading…';
         const res = await fetch('/backtest');
         const data = await res.json();
