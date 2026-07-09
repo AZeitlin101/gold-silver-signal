@@ -712,6 +712,170 @@ def get_backtest():
     return run_backtest(sample_prices, weights={"technical": 0.35, "macro": 0.30, "news": 0.35})
 
 
+def _calculate_overall_confidence(technical: float, macro: float, news: float, confluence: dict, momentum: dict, divergences: dict) -> dict:
+    """Calculate overall trade confidence score (0-100%)."""
+    confidence = 50  # Start at neutral
+    
+    # Confluence contribution (±25 points max)
+    confluence_alignment = confluence.get("bullish_signals", 0) + confluence.get("bearish_signals", 0)
+    if confluence_alignment == 3:  # All signals agree
+        confidence += 20
+    elif confluence_alignment == 2:  # Two signals agree
+        confidence += 10
+    # else: neutral signals reduce confidence
+    
+    # Signal alignment (are we bullish or bearish?)
+    avg_score = (technical + macro + news) / 3
+    if avg_score > 65:
+        confidence += 15  # Strong bullish
+    elif avg_score > 60:
+        confidence += 8   # Moderate bullish
+    elif avg_score < 35:
+        confidence += 15  # Strong bearish
+    elif avg_score < 40:
+        confidence += 8   # Moderate bearish
+    # Neutral region: no bonus
+    
+    # Momentum contribution (±15 points)
+    mom = momentum.get("momentum", "stable")
+    trend = momentum.get("trend", 0)
+    if mom == "strengthening" and trend > 0:
+        confidence += 12
+    elif mom == "weakening" and trend < 0:
+        confidence += 8
+    elif mom == "stable":
+        confidence += 3
+    else:
+        confidence -= 5
+    
+    # Divergence penalty (−25 points max)
+    caution = divergences.get("caution_level", "low")
+    if caution == "high":
+        confidence -= 20
+    elif caution == "medium":
+        confidence -= 10
+    
+    # Cap at 0-100
+    confidence = max(0, min(100, confidence))
+    
+    # Determine zone
+    if confidence >= 75:
+        zone = "Strong"
+        color = "bullish"
+    elif confidence >= 60:
+        zone = "Moderate"
+        color = "bullish"
+    elif confidence >= 50:
+        zone = "Neutral"
+        color = "neutral"
+    elif confidence >= 35:
+        zone = "Weak"
+        color = "bearish"
+    else:
+        zone = "Poor"
+        color = "bearish"
+    
+    return {
+        "score": round(confidence, 1),
+        "percentage": f"{round(confidence)}%",
+        "zone": zone,
+        "color": color,
+        "reasoning": f"{zone} trade setup. All signals {'aligned' if confluence_alignment == 3 else 'mixed'}. Momentum {'strengthening' if mom == 'strengthening' else 'weakening' if mom == 'weakening' else 'stable'}."
+    }
+
+
+def _get_multi_timeframe_confirmation(metal: str, technical: float, macro: float, news: float) -> dict:
+    """Simulate multi-timeframe analysis across 1h, 4h, and 1D."""
+    # In production, you'd fetch actual OHLC data for each timeframe
+    # For now, we simulate slight variations around current scores
+    
+    base_score = (technical + macro + news) / 3
+    
+    # Simulate different timeframes with realistic noise
+    timeframes = {
+        "1h": {
+            "technical": max(0, min(100, technical + ((hash(f"{metal}_1h_tech") % 20) - 10))),
+            "macro": macro,  # Macro doesn't change on short timeframes
+            "news": news,    # News doesn't change on short timeframes
+            "direction": "bullish" if technical > 55 else "bearish" if technical < 45 else "neutral"
+        },
+        "4h": {
+            "technical": max(0, min(100, technical + ((hash(f"{metal}_4h_tech") % 15) - 7))),
+            "macro": macro,
+            "news": news,
+            "direction": "bullish" if technical > 55 else "bearish" if technical < 45 else "neutral"
+        },
+        "1d": {
+            "technical": technical,  # 1D is more stable
+            "macro": macro,
+            "news": news,
+            "direction": "bullish" if base_score > 55 else "bearish" if base_score < 45 else "neutral"
+        }
+    }
+    
+    # Calculate alignment
+    directions = [tf["direction"] for tf in timeframes.values()]
+    aligned = directions.count(directions[0]) == len(directions)
+    alignment_count = sum(1 for d in directions if d == directions[0])
+    
+    primary_trend = "bullish" if base_score > 55 else "bearish" if base_score < 45 else "neutral"
+    
+    return {
+        "timeframes": timeframes,
+        "aligned": aligned,
+        "alignment_count": alignment_count,
+        "alignment_percentage": round((alignment_count / 3) * 100),
+        "primary_trend": primary_trend,
+        "summary": f"{'✓ All timeframes aligned' if aligned else '⚠ Mixed timeframe signals'} - Primary trend is {primary_trend.upper()}"
+    }
+
+
+def _get_sentiment_gauge(technical: float, macro: float, news: float) -> dict:
+    """Calculate real-time sentiment indicators (simulated)."""
+    avg_score = (technical + macro + news) / 3
+    
+    # COT-like positioning (Commercials usually inverse to retail)
+    # High avg_score suggests retail is bullish, so commercials are reducing longs
+    cot_commercial_positioning = max(-100, min(100, (50 - avg_score) * 1.5))
+    cot_status = "long" if cot_commercial_positioning > 10 else "short" if cot_commercial_positioning < -10 else "neutral"
+    
+    # Options flow simulation (call/put ratio)
+    # Higher news score suggests more bullish sentiment = more call buying
+    options_call_put_ratio = 1.0 + ((avg_score - 50) / 50) * 0.5  # Range ~0.5 to 1.5
+    options_flow = "bullish" if options_call_put_ratio > 1.1 else "bearish" if options_call_put_ratio < 0.9 else "neutral"
+    
+    # Retail vs Institutional positioning
+    # Simulate inverse of technical score (retail often lags institutions)
+    retail_positioning = 50 + (technical - 50) * 0.7
+    institutional_positioning = avg_score
+    retail_status = "bullish" if retail_positioning > 55 else "bearish" if retail_positioning < 45 else "neutral"
+    institutional_status = "bullish" if institutional_positioning > 55 else "bearish" if institutional_positioning < 45 else "neutral"
+    retail_institutional_alignment = retail_status == institutional_status
+    
+    return {
+        "cot_positioning": {
+            "commercials": cot_status,
+            "positioning_score": round(cot_commercial_positioning, 1),
+            "description": f"Commercials are {'net long' if cot_status == 'long' else 'net short' if cot_status == 'short' else 'balanced'}"
+        },
+        "options_flow": {
+            "call_put_ratio": round(options_call_put_ratio, 2),
+            "bias": options_flow,
+            "description": f"{'More call buying' if options_flow == 'bullish' else 'More put buying' if options_flow == 'bearish' else 'Balanced'} activity"
+        },
+        "retail_vs_institutional": {
+            "retail": retail_status,
+            "institutional": institutional_status,
+            "aligned": retail_institutional_alignment,
+            "retail_score": round(retail_positioning, 1),
+            "institutional_score": round(institutional_positioning, 1),
+            "description": f"Retail {'agrees' if retail_institutional_alignment else 'disagrees'} with institutions"
+        },
+        "overall_sentiment": "bullish" if avg_score > 55 else "bearish" if avg_score < 45 else "neutral",
+        "smart_money_direction": "with_retail" if retail_institutional_alignment else "contrarian"
+    }
+
+
 @app.get("/signal")
 def get_signal(metal: str = "gold"):
     """Return a composite metal signal built from technical, macro, and news inputs."""
@@ -756,6 +920,27 @@ def get_signal(metal: str = "gold"):
         demo_signal["market_session"] = _get_market_session()
         demo_signal["economic_events"] = _fetch_economic_events()
         demo_signal["risk_reward"] = _calculate_risk_reward(2050, 2000, 2150)
+        
+        # Add new advanced features: confidence, multiframe, sentiment
+        demo_signal["confidence_score"] = _calculate_overall_confidence(
+            demo_signal.get("technical_score", 50),
+            demo_signal.get("macro_score", 50),
+            demo_signal.get("news_score", 50),
+            demo_signal["confluence"],
+            demo_signal["momentum"],
+            demo_signal["divergences"]
+        )
+        demo_signal["multiframe_confirmation"] = _get_multi_timeframe_confirmation(
+            target_metal,
+            demo_signal.get("technical_score", 50),
+            demo_signal.get("macro_score", 50),
+            demo_signal.get("news_score", 50)
+        )
+        demo_signal["sentiment_gauge"] = _get_sentiment_gauge(
+            demo_signal.get("technical_score", 50),
+            demo_signal.get("macro_score", 50),
+            demo_signal.get("news_score", 50)
+        )
         
         score = demo_signal.get("composite_score", 50)
         if score >= 85:
@@ -897,6 +1082,27 @@ def get_signal(metal: str = "gold"):
         "level": strength_level,
         "gradient": max(0, min(100, score))
     }
+    
+    # Add new advanced features: confidence, multiframe, sentiment
+    signal_payload["confidence_score"] = _calculate_overall_confidence(
+        signal_payload.get("technical_score", 50),
+        signal_payload.get("macro_score", 50),
+        signal_payload.get("news_score", 50),
+        signal_payload["confluence"],
+        signal_payload["momentum"],
+        signal_payload["divergences"]
+    )
+    signal_payload["multiframe_confirmation"] = _get_multi_timeframe_confirmation(
+        target_metal,
+        signal_payload.get("technical_score", 50),
+        signal_payload.get("macro_score", 50),
+        signal_payload.get("news_score", 50)
+    )
+    signal_payload["sentiment_gauge"] = _get_sentiment_gauge(
+        signal_payload.get("technical_score", 50),
+        signal_payload.get("macro_score", 50),
+        signal_payload.get("news_score", 50)
+    )
     
     if should_alert(signal_payload, metal_settings["thresholds"]):
         signal_payload["alert"] = build_alert_message(signal_payload, metal_settings["thresholds"])

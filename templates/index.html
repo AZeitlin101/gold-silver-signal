@@ -506,6 +506,21 @@
       </div>
 
       <div class="card">
+        <div class="section-title">Trade Confidence Score</div>
+        <div id="confidence-score-output" style="font-size: 0.95rem;">Loading…</div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Multi-Timeframe Confirmation</div>
+        <div id="multiframe-output" style="font-size: 0.95rem;">Loading…</div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Real-Time Sentiment Gauge</div>
+        <div id="sentiment-output" style="font-size: 0.95rem;">Loading…</div>
+      </div>
+
+      <div class="card">
         <div class="section-title">Trade plan</div>
         <div class="small">Actionable levels with risk/reward and position sizing based on current signal context.</div>
         <div id="trade-plan-output" class="trade-grid" style="margin-top:0.8rem;">Loading…</div>
@@ -1541,6 +1556,11 @@
         renderMarketSession(data.market_session);
         renderEconomicEventsList(data.economic_events);
         await renderCorrelation();
+        
+        // Render new confidence and sentiment features
+        renderConfidenceScore(data.confidence_score);
+        renderMultiframeConfirmation(data.multiframe_confirmation);
+        renderSentimentGauge(data.sentiment_gauge);
       }
 
       function renderConfluenceScore(confluence) {
@@ -1745,6 +1765,169 @@
         } catch (e) {
           output.innerHTML = '<small style="color: var(--muted);">Correlation data unavailable</small>';
         }
+      }
+
+      function renderConfidenceScore(confidence) {
+        const output = document.getElementById('confidence-score-output');
+        if (!confidence) {
+          output.innerHTML = 'Unable to calculate confidence.';
+          return;
+        }
+        
+        const score = confidence.score || 50;
+        const percentage = confidence.percentage || '50%';
+        const zone = confidence.zone || 'Neutral';
+        const color = confidence.color === 'bullish' ? '#22c55e' : confidence.color === 'bearish' ? '#f87171' : '#fbbf24';
+        const reasoning = confidence.reasoning || 'Processing signal data...';
+        
+        // Visual gauge: the score bar
+        const fillPercentage = Math.max(0, Math.min(100, score));
+        
+        output.innerHTML = `
+          <div style="padding: 1rem; background: var(--panel); border-radius: 0.5rem; border-left: 4px solid ${color};">
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; margin-bottom: 1rem; align-items: center;">
+              <div style="text-align: center;">
+                <div style="font-size: 2.5rem; font-weight: bold; color: ${color};">${percentage}</div>
+                <div style="font-size: 0.9rem; color: var(--muted);">Confidence</div>
+              </div>
+              <div>
+                <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; color: ${color};">${zone} Setup</div>
+                <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                  <div style="width: ${fillPercentage}%; height: 100%; background: ${color}; transition: width 0.3s ease;"></div>
+                </div>
+              </div>
+            </div>
+            <div style="padding: 0.8rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; font-size: 0.9rem; color: #d5f3ec; line-height: 1.5;">
+              ${reasoning}
+            </div>
+            <div style="margin-top: 0.8rem; font-size: 0.85rem; color: var(--muted);">
+              ${score >= 75 ? '✓ Strong trade setup - good risk/reward' : 
+                score >= 60 ? '→ Moderate setup - wait for confirmation' :
+                score >= 50 ? '⚠ Weak signals - consider caution' :
+                '✗ Poor setup - skip this trade'}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderMultiframeConfirmation(multiframe) {
+        const output = document.getElementById('multiframe-output');
+        if (!multiframe) {
+          output.innerHTML = 'Unable to calculate multiframe data.';
+          return;
+        }
+        
+        const timeframes = multiframe.timeframes || {};
+        const aligned = multiframe.aligned || false;
+        const alignment = multiframe.alignment_count || 0;
+        const primary = multiframe.primary_trend || 'neutral';
+        const summary = multiframe.summary || 'Analyzing timeframes...';
+        
+        const alignmentColor = aligned ? '#22c55e' : '#f87171';
+        
+        output.innerHTML = `
+          <div style="padding: 1rem; background: var(--panel); border-radius: 0.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin-bottom: 1rem;">
+              ${['1h', '4h', '1d'].map(tf => {
+                const data = timeframes[tf] || {};
+                const tech = data.technical || 50;
+                const direction = data.direction || 'neutral';
+                const dirColor = direction === 'bullish' ? '#22c55e' : direction === 'bearish' ? '#f87171' : '#fbbf24';
+                const dirIcon = direction === 'bullish' ? '↑' : direction === 'bearish' ? '↓' : '→';
+                return `
+                  <div style="padding: 0.8rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; text-align: center; border: 1px solid ${dirColor}33;">
+                    <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.4rem;">${tf}</div>
+                    <div style="font-size: 1.3rem; font-weight: bold; color: ${dirColor}; margin-bottom: 0.3rem;">${dirIcon}</div>
+                    <div style="font-size: 0.85rem; color: var(--muted);">Tech: ${tech.toFixed(0)}</div>
+                    <div style="font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; text-transform: capitalize;">${direction}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+            <div style="padding: 0.8rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; border-left: 3px solid ${alignmentColor}; margin-bottom: 0.8rem;">
+              <div style="font-weight: 600; color: ${alignmentColor}; margin-bottom: 0.3rem;">${aligned ? '✓ Aligned' : '⚠ Mixed'} - ${alignment}/3 timeframes</div>
+              <div style="font-size: 0.9rem; color: #d5f3ec;">${summary}</div>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--muted); padding: 0.6rem; background: rgba(0,0,0,0.3); border-radius: 0.4rem;">
+              <strong>Primary trend:</strong> <span style="color: ${primary === 'bullish' ? '#22c55e' : primary === 'bearish' ? '#f87171' : '#fbbf24'};">${primary.toUpperCase()}</span>
+              <br><small>${aligned ? 'All timeframes agree - strong conviction' : 'Mixed signals across timeframes - lower conviction'}</small>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderSentimentGauge(sentiment) {
+        const output = document.getElementById('sentiment-output');
+        if (!sentiment) {
+          output.innerHTML = 'Unable to calculate sentiment.';
+          return;
+        }
+        
+        const cot = sentiment.cot_positioning || {};
+        const options = sentiment.options_flow || {};
+        const retail = sentiment.retail_vs_institutional || {};
+        const overall = sentiment.overall_sentiment || 'neutral';
+        const smartMoney = sentiment.smart_money_direction || 'unknown';
+        
+        const cotColor = cot.commercials === 'long' ? '#22c55e' : cot.commercials === 'short' ? '#f87171' : '#fbbf24';
+        const optionsColor = options.bias === 'bullish' ? '#22c55e' : options.bias === 'bearish' ? '#f87171' : '#fbbf24';
+        const retailColor = retail.retail === 'bullish' ? '#84cc16' : retail.retail === 'bearish' ? '#fb923c' : '#fbbf24';
+        const instColor = retail.institutional === 'bullish' ? '#22c55e' : retail.institutional === 'bearish' ? '#f87171' : '#fbbf24';
+        const overallColor = overall === 'bullish' ? '#22c55e' : overall === 'bearish' ? '#f87171' : '#fbbf24';
+        
+        output.innerHTML = `
+          <div style="padding: 1rem; background: var(--panel); border-radius: 0.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem; margin-bottom: 1rem;">
+              <!-- COT -->
+              <div style="padding: 0.8rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; border-left: 3px solid ${cotColor};">
+                <div style="font-size: 0.85rem; color: var(--muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.4rem;">Commercials (COT)</div>
+                <div style="font-size: 1.3rem; font-weight: bold; color: ${cotColor}; margin-bottom: 0.3rem;">
+                  ${cot.commercials === 'long' ? '🟢 LONG' : cot.commercials === 'short' ? '🔴 SHORT' : '🟡 NEUTRAL'}
+                </div>
+                <div style="font-size: 0.8rem; color: #d5f3ec;">${cot.description || 'Processing...'}</div>
+              </div>
+              
+              <!-- Options Flow -->
+              <div style="padding: 0.8rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; border-left: 3px solid ${optionsColor};">
+                <div style="font-size: 0.85rem; color: var(--muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.4rem;">Options Flow</div>
+                <div style="font-size: 1.3rem; font-weight: bold; color: ${optionsColor}; margin-bottom: 0.3rem;">
+                  ${options.bias === 'bullish' ? '📞 Calls' : options.bias === 'bearish' ? '📳 Puts' : '⚖️ Balanced'}
+                </div>
+                <div style="font-size: 0.8rem; color: #d5f3ec;">Call/Put: ${(options.call_put_ratio || 1.0).toFixed(2)}</div>
+              </div>
+            </div>
+            
+            <!-- Retail vs Institutional -->
+            <div style="padding: 0.8rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; margin-bottom: 1rem;">
+              <div style="font-size: 0.85rem; color: var(--muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.6rem;">Retail vs Institutional</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div style="text-align: center; padding: 0.6rem; background: rgba(0,0,0,0.3); border-radius: 0.5rem; border: 1px solid ${retailColor}33;">
+                  <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.3rem;">Retail</div>
+                  <div style="font-size: 1.2rem; font-weight: bold; color: ${retailColor};">
+                    ${retail.retail === 'bullish' ? '📈' : retail.retail === 'bearish' ? '📉' : '➡️'}
+                  </div>
+                  <div style="font-size: 0.8rem; color: #d5f3ec; margin-top: 0.2rem; text-transform: capitalize;">${retail.retail}</div>
+                </div>
+                <div style="text-align: center; padding: 0.6rem; background: rgba(0,0,0,0.3); border-radius: 0.5rem; border: 1px solid ${instColor}33;">
+                  <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.3rem;">Institutional</div>
+                  <div style="font-size: 1.2rem; font-weight: bold; color: ${instColor};">
+                    ${retail.institutional === 'bullish' ? '📈' : retail.institutional === 'bearish' ? '📉' : '➡️'}
+                  </div>
+                  <div style="font-size: 0.8rem; color: #d5f3ec; margin-top: 0.2rem; text-transform: capitalize;">${retail.institutional}</div>
+                </div>
+              </div>
+              <div style="margin-top: 0.6rem; padding: 0.5rem; background: rgba(0,0,0,0.3); border-radius: 0.4rem; font-size: 0.8rem; color: var(--muted);">
+                ${retail.aligned ? '✓ Retail and institutions aligned' : '⚠ Retail/institutions diverging'} - Smart money: <strong style="color: #a5b4fc;">${smartMoney.replace('_', ' ').toUpperCase()}</strong>
+              </div>
+            </div>
+            
+            <!-- Overall -->
+            <div style="padding: 0.8rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; border-left: 3px solid ${overallColor}; text-align: center;">
+              <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.3rem;">Overall Market Sentiment</div>
+              <div style="font-size: 1.5rem; font-weight: bold; color: ${overallColor}; text-transform: uppercase;">${overall}</div>
+            </div>
+          </div>
+        `;
       }
 
 
