@@ -586,10 +586,6 @@
             <div class="chart-topline"><div class="section-title">Momentum / RSI</div><div class="chart-chip">Core</div></div>
             <div class="chart-wrap"><canvas id="momentum-chart"></canvas></div>
           </div>
-          <div class="metric-card chart-card" data-view="levels" onclick="openChartModal('Driver correlation', 'driver-chart')">
-            <div class="chart-topline"><div class="section-title">Driver correlation</div><div class="chart-chip">Deep</div></div>
-            <div class="chart-wrap"><canvas id="driver-chart"></canvas></div>
-          </div>
           <div class="metric-card chart-card" data-view="levels" onclick="openChartModal('Regime view', 'regime-chart')">
             <div class="chart-topline"><div class="section-title">Regime view</div><div class="chart-chip">Deep</div></div>
             <div class="chart-wrap"><canvas id="regime-chart"></canvas></div>
@@ -777,7 +773,6 @@
         drawSignalHistoryChart(visibleScore.values, visibleScore.timestamps);
         drawEMAChart(priceHistory);
         drawMomentumChart(latestChartState.score, latestChartState.direction, signalHistory);
-        drawDriverChart(latestChartState.technical, latestChartState.macro, latestChartState.news, latestChartState.score);
         drawRegimeChart(latestChartState.score, latestChartState.direction);
         drawSupportChart(latestChartState.currentPrice);
         drawGammaChartMain(latestChartState.gammaScore, latestChartState.gammaExposure);
@@ -954,7 +949,6 @@
             ? ['Cyan: 3-day EMA (fast)', 'Orange: 5-day EMA (slow)', 'Current price']
             : ['Cyan: 50-day EMA (fast)', 'Orange: 200-day EMA (slow)', 'Current price'],
           'momentum-chart': ['Momentum', 'RSI-like reading'],
-          'driver-chart': ['Technical', 'Macro', 'News', 'Composite'],
           'regime-chart': ['Bullish', 'Neutral', 'Bearish'],
           'support-chart': ['Support', 'Resistance', 'Current price'],
         };
@@ -2510,60 +2504,6 @@
         ctx.fillStyle = direction === 'bullish' ? '#22c55e' : direction === 'bearish' ? '#f87171' : '#fbbf24';
         const dirIcon = direction === 'bullish' ? '↑ Bull' : direction === 'bearish' ? '↓ Bear' : '→ Neutral';
         ctx.fillText(dirIcon, width - 90, height - 28);
-      }
-
-      function drawDriverChart(technical, macro, news, composite) {
-        const chartContext = getChartContext('driver-chart', 230);
-        if (!chartContext) return;
-        const { ctx, width, height } = chartContext;
-        ctx.fillStyle = '#08111c';
-        ctx.fillRect(0, 0, width, height);
-
-        const values = [technical, macro, news, composite];
-        const labels = ['Tech', 'Macro', 'News', 'Composite'];
-        const centerX = width / 2;
-        const centerY = height / 2 + 8;
-        const radius = 70;
-
-        ctx.strokeStyle = '#22344d';
-        ctx.lineWidth = 1;
-        for (let ring = 1; ring <= 4; ring += 1) {
-          ctx.beginPath();
-          for (let i = 0; i < 4; i += 1) {
-            const angle = -Math.PI / 2 + i * (Math.PI / 2);
-            const x = centerX + Math.cos(angle) * (radius * ring / 4);
-            const y = centerY + Math.sin(angle) * (radius * ring / 4);
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          }
-          ctx.closePath();
-          ctx.stroke();
-        }
-
-        ctx.beginPath();
-        values.forEach((value, index) => {
-          const angle = -Math.PI / 2 + index * (Math.PI / 2);
-          const distance = (Math.max(0, Math.min(100, value)) / 100) * radius;
-          const x = centerX + Math.cos(angle) * distance;
-          const y = centerY + Math.sin(angle) * distance;
-          if (index === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        });
-        ctx.closePath();
-        ctx.fillStyle = 'rgba(45,212,191,0.25)';
-        ctx.fill();
-        ctx.strokeStyle = '#2dd4bf';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.fillStyle = '#f4f7fb';
-        ctx.font = '11px Arial';
-        values.forEach((value, index) => {
-          const angle = -Math.PI / 2 + index * (Math.PI / 2);
-          const labelX = centerX + Math.cos(angle) * (radius + 20);
-          const labelY = centerY + Math.sin(angle) * (radius + 20);
-          ctx.fillText(`${labels[index]} ${value.toFixed(0)}`, labelX - 30, labelY + 4);
-        });
       }
 
       function drawRegimeChart(score, direction) {
