@@ -756,6 +756,10 @@
         const canvas = document.getElementById(canvasId);
         const parent = canvas?.parentElement;
         if (!parent) return null;
+        
+        // Force layout recalculation by accessing offsetHeight
+        parent.offsetHeight;
+        
         const rect = parent.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return null;
         
@@ -812,12 +816,29 @@
       function renderAllCharts() {
         const visibleScore = getVisibleSeries(signalHistory, signalTimestamps);
         const visiblePrice = getVisibleSeries(priceHistory, priceTimestamps);
+        
+        // Helper to check if a chart is currently visible
+        const isChartVisible = (chartId) => {
+          const canvas = document.getElementById(chartId);
+          const card = canvas?.closest('.chart-card');
+          return card && card.style.display !== 'none';
+        };
+        
+        // Always render Core charts
         drawPriceChart(visiblePrice.values, visiblePrice.timestamps);
         drawSignalHistoryChart(visibleScore.values, visibleScore.timestamps);
         drawEMAChart(priceHistory);
         drawMomentumChart(latestChartState.score, latestChartState.direction, signalHistory);
-        drawRegimeChart(latestChartState.score, latestChartState.direction);
-        drawSupportChart(latestChartState.currentPrice);
+        
+        // Only render Deep Dive charts if visible
+        if (isChartVisible('regime-chart')) {
+          drawRegimeChart(latestChartState.score, latestChartState.direction);
+        }
+        if (isChartVisible('support-chart')) {
+          drawSupportChart(latestChartState.currentPrice);
+        }
+        
+        // Always render metrics
         drawGammaChartMain(latestChartState.gammaScore, latestChartState.gammaExposure);
         drawGammaDetailChartMain(latestChartState.gammaScore);
         updateGammaRatingExplanation(latestChartState.gammaScore);
@@ -841,9 +862,12 @@
 
         document.querySelectorAll('.chart-card').forEach((card) => {
           const bucket = card.getAttribute('data-view') || 'core';
-          const show = chartView === 'all' || bucket === chartView;
+          const show = bucket === chartView;
           card.style.display = show ? '' : 'none';
         });
+        
+        // Re-render charts after view change with sufficient delay for DOM layout
+        setTimeout(() => renderAllCharts(), 100);
       }
 
       function getRangePoints() {
@@ -2373,7 +2397,7 @@
               crossoverMessage = `✓ BULLISH CROSS! ${label1} crossed above ${label2}`;
             } else {
               const distance = (((ema1Current - ema2Current) / ema2Current) * 100).toFixed(2);
-              crossoverMessage = `✓ Bullish | Fast above slow (+${distance}%)`;
+              crossoverMessage = `✓ Bullish | ${label1} +${distance}% above ${label2}`;
             }
           } else if (ema1Current < ema2Current) {
             crossoverStatus = 'bearish';
@@ -2381,7 +2405,7 @@
               crossoverMessage = `✗ BEARISH CROSS! ${label1} crossed below ${label2}`;
             } else {
               const distance = (((ema2Current - ema1Current) / ema2Current) * 100).toFixed(2);
-              crossoverMessage = `✗ Bearish | Fast below slow (-${distance}%)`;
+              crossoverMessage = `✗ Bearish | ${label1} ${distance}% below ${label2}`;
             }
           } else {
             crossoverMessage = '= EMAs converging';
@@ -2397,21 +2421,20 @@
         ctx.font = '11px Arial';
         ctx.fillText('Price', width - 60, 20);
         
-        // Draw recent EMA values
+        // Draw recent EMA values with full descriptions
         if (ema1.length > 0) {
           const lastEMA1 = ema1[ema1.length - 1];
           ctx.fillStyle = '#2dd4bf';
-          const label1Short = label1.split('-')[0].trim();
-          ctx.fillText(`${label1Short}: ${lastEMA1.toFixed(currentMetal === 'silver' ? 2 : 0)}`, 25, height - 12);
+          ctx.fillText(`${label1}: ${lastEMA1.toFixed(currentMetal === 'silver' ? 2 : 0)}`, 25, height - 12);
         }
         if (ema2.length > 0) {
           const lastEMA2 = ema2[ema2.length - 1];
           ctx.fillStyle = '#f59e0b';
-          const label2Short = label2.split('-')[0].trim();
-          ctx.fillText(`${label2Short}: ${lastEMA2.toFixed(currentMetal === 'silver' ? 2 : 0)}`, 25 + 120, height - 12);
+          const xOffset = prices.length < 50 ? 230 : 220;
+          ctx.fillText(`${label2}: ${lastEMA2.toFixed(currentMetal === 'silver' ? 2 : 0)}`, 25 + xOffset, height - 12);
         }
         ctx.fillStyle = '#e5e7eb';
-        ctx.fillText(`Now: ${currentPrice.toFixed(currentMetal === 'silver' ? 2 : 0)}`, 25 + 240, height - 12);
+        ctx.fillText(`Price: ${currentPrice.toFixed(currentMetal === 'silver' ? 2 : 0)}`, width - 120, height - 12);
       }
 
       function drawMomentumChart(score, direction, history) {
