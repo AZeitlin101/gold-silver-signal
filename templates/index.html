@@ -2396,16 +2396,18 @@
             if (ema1Prev <= ema2Prev) {
               crossoverMessage = `✓ BULLISH CROSS! ${label1} crossed above ${label2}`;
             } else {
-              const distance = (((ema1Current - ema2Current) / ema2Current) * 100).toFixed(2);
-              crossoverMessage = `✓ Bullish | ${label1} +${distance}% above ${label2}`;
+              const distance = (((ema1Current - ema2Current) / ema2Current) * 100);
+              const distanceStr = Math.abs(distance) < 0.01 ? distance.toFixed(4) : distance.toFixed(2);
+              crossoverMessage = `✓ Bullish | ${label1} +${distanceStr}% above ${label2}`;
             }
           } else if (ema1Current < ema2Current) {
             crossoverStatus = 'bearish';
             if (ema1Prev >= ema2Prev) {
               crossoverMessage = `✗ BEARISH CROSS! ${label1} crossed below ${label2}`;
             } else {
-              const distance = (((ema2Current - ema1Current) / ema2Current) * 100).toFixed(2);
-              crossoverMessage = `✗ Bearish | ${label1} ${distance}% below ${label2}`;
+              const distance = (((ema2Current - ema1Current) / ema2Current) * 100);
+              const distanceStr = Math.abs(distance) < 0.01 ? distance.toFixed(4) : distance.toFixed(2);
+              crossoverMessage = `✗ Bearish | ${label1} ${distanceStr}% below ${label2}`;
             }
           } else {
             crossoverMessage = '= EMAs converging';
@@ -2415,6 +2417,12 @@
         // Display status
         const statusColor = crossoverStatus === 'bullish' ? '#22c55e' : crossoverStatus === 'bearish' ? '#f87171' : '#fbbf24';
         document.getElementById('ema-status').innerHTML = `<span style="color: ${statusColor}; font-weight: bold;">${crossoverMessage}</span>`;
+        
+        // Update chart title to reflect actual EMA periods
+        const titleElement = document.querySelector('[onclick*="ema-chart"]')?.querySelector('.section-title');
+        if (titleElement) {
+          titleElement.textContent = `${period1}/${period2} EMA Crossover`;
+        }
         
         // Draw labels
         ctx.fillStyle = '#f4f7fb';
