@@ -1555,7 +1555,8 @@
         renderDivergences(data.divergences);
         renderMarketSession(data.market_session);
         renderEconomicEventsList(data.economic_events);
-        await renderCorrelation();
+        // Don't await correlation - let it load in background
+        renderCorrelation();
         
         // Render new confidence and sentiment features
         renderConfidenceScore(data.confidence_score);
