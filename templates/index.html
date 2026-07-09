@@ -2215,8 +2215,8 @@
 
       function drawEMAChart(prices) {
         const chartContext = getChartContext('ema-chart', 230);
-        if (!chartContext || !prices || prices.length < 50) {
-          document.getElementById('ema-status').innerHTML = 'Insufficient price data';
+        if (!chartContext || !prices || prices.length < 20) {
+          document.getElementById('ema-status').innerHTML = 'Insufficient price data (need 20+ days)';
           return;
         }
         
@@ -3078,6 +3078,7 @@
       loadBacktest();
       renderAllCharts();
       drawGauge(50);
+      loadSignal(); // Load signal data to populate price history
 
       let resizeTimer;
       window.addEventListener('resize', () => {
