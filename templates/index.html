@@ -950,14 +950,16 @@
         const legends = {
           'price-chart': [`${getMetalDisplayName(currentMetal)} price`, 'Price trend'],
           'signal-chart': ['Signal score', 'Bullish / bearish trend'],
-          'ema-chart': ['Fast EMA', 'Slow EMA', 'Current price'],
+          'ema-chart': priceHistory.length < 50 
+            ? ['Cyan: 3-day EMA (fast)', 'Orange: 5-day EMA (slow)', 'Current price']
+            : ['Cyan: 50-day EMA (fast)', 'Orange: 200-day EMA (slow)', 'Current price'],
           'momentum-chart': ['Momentum', 'RSI-like reading'],
           'driver-chart': ['Technical', 'Macro', 'News', 'Composite'],
           'regime-chart': ['Bullish', 'Neutral', 'Bearish'],
           'support-chart': ['Support', 'Resistance', 'Current price'],
         };
         modalLegend.innerHTML = (legends[canvasId] || ['Current view']).map((item) => `
-          <div class="legend-item"><span class="legend-swatch" style="background:${item.includes('Technical') ? '#2dd4bf' : item.includes('Macro') ? '#3b82f6' : item.includes('News') ? '#f59e0b' : item.includes('Signal') ? '#2dd4bf' : item.includes('Price') ? '#fbbf24' : '#f4f7fb'}"></span>${escapeHtml(item)}</div>
+          <div class="legend-item"><span class="legend-swatch" style="background:${item.includes('Cyan') ? '#2dd4bf' : item.includes('Orange') ? '#f59e0b' : item.includes('Technical') ? '#2dd4bf' : item.includes('Macro') ? '#3b82f6' : item.includes('News') ? '#f59e0b' : item.includes('Signal') ? '#2dd4bf' : item.includes('Price') ? '#fbbf24' : '#f4f7fb'}"></span>${escapeHtml(item)}</div>
         `).join('');
 
         document.getElementById('chart-modal').classList.add('active');
