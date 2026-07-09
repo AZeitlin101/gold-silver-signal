@@ -69,12 +69,12 @@
         border-radius: 16px;
         padding: 1.5rem 1.5rem;
         margin-bottom: 1.2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         transition: border-color 0.3s ease, box-shadow 0.3s ease;
       }
       .card:hover {
         border-color: rgba(213, 243, 236, 0.2);
-        box-shadow: 0 15px 40px rgba(0,0,0,0.35);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
       }
       .hero {
         display: flex;
@@ -123,8 +123,25 @@
         color: white;
         cursor: pointer;
         font-weight: 700;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+        box-shadow: 0 2px 8px rgba(45, 212, 191, 0.2);
       }
-      button.secondary { background: var(--panel-2); }
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(45, 212, 191, 0.35);
+      }
+      button:active {
+        transform: translateY(0);
+        opacity: 0.95;
+      }
+      button.secondary { 
+        background: var(--panel-2); 
+        color: var(--text);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      }
+      button.secondary:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      }
       input, select { padding: 0.45rem 0.6rem; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); width: 100%; }
       .grid-2 { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 1.5rem; }
       .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; }
@@ -168,9 +185,14 @@
         border-radius: 12px;
         padding: 0.7rem;
         cursor: pointer;
-        transition: border-color 0.2s ease, transform 0.2s ease;
+        transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       }
-      .insight-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+      .insight-card:hover { 
+        border-color: var(--accent); 
+        transform: translateY(-1px); 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      }
       .insight-title { color: var(--muted); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.11em; }
       .insight-value { font-size: 1.05rem; font-weight: 700; margin-top: 0.2rem; }
       .insight-note { color: var(--muted); font-size: 0.82rem; margin-top: 0.2rem; }
@@ -191,11 +213,13 @@
         border-radius: 12px;
         padding: 0.8rem;
         cursor: pointer;
-        transition: transform 0.2s ease, border-color 0.2s ease;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.12);
       }
       .metric-card:hover {
         transform: translateY(-2px);
         border-color: var(--accent);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
       }
       .pulse-card {
         background: var(--panel-2);
@@ -219,7 +243,7 @@
       .metric-label { color: var(--muted); font-size: 0.82rem; }
       .metric-value { font-size: 1.2rem; font-weight: 700; margin-top: 0.2rem; }
       .metric-detail { color: var(--muted); font-size: 0.86rem; margin-top: 0.2rem; }
-      .section-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.08em; color: #d5f3ec; padding-bottom: 0.6rem; border-bottom: 2px solid rgba(213, 243, 236, 0.15); }
+      .section-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.08em; color: #d5f3ec; padding-bottom: 0.6rem; border-bottom: 2px solid rgba(213, 243, 236, 0.12); }
       .alert-box {
         margin-top: 0.8rem;
         padding: 0.7rem 0.8rem;
@@ -451,7 +475,7 @@
       <div class="card hero">
         <div>
           <div class="eyebrow">Live signal</div>
-          <div id="summary-score" class="score">--</div>
+          <div id="summary-score" class="score" style="color: #888;">• • •</div>
           <div id="summary-direction" class="tag neutral">Loading…</div>
           <div class="meta-row">
             <span class="pill" id="summary-time">Updated just now</span>
@@ -555,9 +579,7 @@
         <div class="small">Core and deep-dive views are organized in one clean visual wall.</div>
         <div class="view-tabs" role="tablist" aria-label="Chart view tabs">
           <button id="view-core" class="view-tab active" onclick="setChartView('core')">Core</button>
-          <button id="view-levels" class="view-tab" onclick="setChartView('levels')">Levels</button>
-          <button id="view-outlook" class="view-tab" onclick="setChartView('outlook')">Outlook</button>
-          <button id="view-all" class="view-tab" onclick="setChartView('all')">All</button>
+          <button id="view-levels" class="view-tab" onclick="setChartView('levels')">Deep Dive</button>
         </div>
         <div class="range-tabs" role="tablist" aria-label="Core chart range">
           <button id="range-1d" class="range-tab active" onclick="setChartRange('1d')">1D</button>
@@ -690,13 +712,32 @@
     </div>
 
     <script>
+      // Design System & Constants
+      const DESIGN = {
+        colors: {
+          accent: '#2dd4bf',
+          accentAlt: '#f59e0b',
+          bullish: '#22c55e',
+          bearish: '#f87171',
+          neutral: '#fbbf24',
+          text: '#f4f7fb',
+          muted: '#8ea0b8',
+          border: '#22344d',
+          panel: '#101b2d',
+          bg: '#07111f',
+        },
+        spacing: { sm: 8, md: 12, lg: 16, xl: 24 },
+        radius: { sm: 8, md: 12, lg: 16 },
+      };
+
+      // Application State
       let signalHistory = [50, 51, 54, 56, 58];
       let priceHistory = [2280, 2286, 2292, 2288, 2295, 2300, 2304, 2310, 2316, 2320, 2325, 2330];
       let signalTimestamps = [];
       let priceTimestamps = [];
       let currentMetal = 'gold';
       let chartRange = '1d';
-      let chartView = 'all';
+      let chartView = 'core';
       let settingsByMetal = {
         gold: {},
         silver: {},
@@ -710,30 +751,32 @@
       let currentInsightIndex = -1;
       let insightTouchStartX = null;
 
+      // === CANVAS UTILITIES ===
       function getChartContext(canvasId, minHeight = 220) {
         const canvas = document.getElementById(canvasId);
-        const parent = canvas.parentElement;
+        const parent = canvas?.parentElement;
+        if (!parent) return null;
         const rect = parent.getBoundingClientRect();
-        
-        // Skip rendering if canvas is hidden or has no dimensions
-        if (rect.width === 0 || rect.height === 0) {
-          return null;
-        }
+        if (rect.width === 0 || rect.height === 0) return null;
         
         const width = Math.max(240, Math.round(rect.width - 8));
         const inferredHeight = rect.height > 20 ? rect.height - 8 : Math.round(width * 0.68);
         const height = Math.max(minHeight, inferredHeight);
         const dpr = window.devicePixelRatio || 1;
 
-        canvas.style.width = `${width}px`;
-        canvas.style.height = `${height}px`;
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
         canvas.width = Math.round(width * dpr);
         canvas.height = Math.round(height * dpr);
-
         const ctx = canvas.getContext('2d');
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = '#08111c';
+        ctx.fillRect(0, 0, width, height);
         return { canvas, ctx, width, height };
+      }
+
+      function formatPrice(price, metal = 'gold') {
+        return price.toFixed(metal === 'silver' ? 2 : 0);
       }
 
       function updateGammaRatingExplanation(gammaScore) {
@@ -792,11 +835,9 @@
       }
 
       function setChartView(view) {
-        chartView = ['core', 'levels', 'outlook', 'all'].includes(view) ? view : 'core';
+        chartView = ['core', 'levels'].includes(view) ? view : 'core';
         document.getElementById('view-core').classList.toggle('active', chartView === 'core');
         document.getElementById('view-levels').classList.toggle('active', chartView === 'levels');
-        document.getElementById('view-outlook').classList.toggle('active', chartView === 'outlook');
-        document.getElementById('view-all').classList.toggle('active', chartView === 'all');
 
         document.querySelectorAll('.chart-card').forEach((card) => {
           const bucket = card.getAttribute('data-view') || 'core';
@@ -3036,18 +3077,32 @@
       setMetal('gold');
       attachCoreChartTooltips();
       loadBacktest();
+      // === PERFORMANCE UTILITIES ===
+      const debounce = (fn, delay = 300) => {
+        let timeout;
+        return function(...args) {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => fn(...args), delay);
+        };
+      };
+
+      // Cache for expensive calculations
+      const cache = {
+        emaCalcs: {},
+        clearEMA: () => { cache.emaCalcs = {}; }
+      };
+
       renderAllCharts();
       drawGauge(50);
       loadSignal(); // Load signal data to populate price history
 
-      let resizeTimer;
-      window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-          renderAllCharts();
-          drawGauge(Math.min(100, Math.max(10, Math.abs((latestChartState.score || 50) - 50) * 2)));
-        }, 120);
-      });
+      // Debounced resize handler for better performance
+      const handleResize = debounce(() => {
+        renderAllCharts();
+        drawGauge(Math.min(100, Math.max(10, Math.abs((latestChartState.score || 50) - 50) * 2)));
+      }, 250);
+      
+      window.addEventListener('resize', handleResize);
     </script>
   </body>
 </html>
