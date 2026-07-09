@@ -887,10 +887,12 @@ def get_signal(metal: str = "gold"):
         news_keywords = [keyword.replace("gold", "silver") for keyword in cfg["NEWS_KEYWORDS"]]
 
     if not cfg.get("GOLD_API_KEY") or not cfg.get("FRED_API_KEY") or not cfg.get("NEWS_API_KEY"):
+        print(f"[DEMO MODE] API keys missing, using sample history. GOLD_API_KEY={bool(cfg.get('GOLD_API_KEY'))}, FRED_API_KEY={bool(cfg.get('FRED_API_KEY'))}, NEWS_API_KEY={bool(cfg.get('NEWS_API_KEY'))}")
         sample_prices = get_sample_history()
         demo_signal = _build_demo_signal(target_metal)
         # Use sample prices for demo mode
         demo_signal["price_history"] = sample_prices
+        print(f"[DEMO MODE] Set price_history to {len(sample_prices)} prices")
         demo_signal.update(generate_signal(sample_prices, metal_settings["weights"], macro={"macro_score": 58}, news={"news_score": 64}))
         demo_signal = build_extended_signal(
             demo_signal,
